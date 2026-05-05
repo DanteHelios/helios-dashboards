@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Helios Pitch Deck</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;}
+body{margin:0;background:#000;}
+deck-stage section{background:#fff;color:var(--fg-1);font-family:var(--font-body);font-weight:300;display:flex;flex-direction:column;padding:80px 110px;position:relative;overflow:hidden;}
+.eyebrow{font-size:18px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--helios-green);margin:0 0 24px;}
+.eyebrow.orange{color:var(--accent);}.eyebrow.dark{color:var(--fg-1);}
+h1.title{font-family:var(--font-heading);font-weight:700;font-size:88px;letter-spacing:-0.02em;line-height:1.0;margin:0 0 28px;color:var(--fg-1);}
+h1.display{font-size:128px;text-transform:uppercase;line-height:.92;letter-spacing:-0.04em;}
+.lede{font-size:28px;font-weight:300;color:var(--fg-2);max-width:1100px;line-height:1.45;margin:0;}
+.brand-bg{background:radial-gradient(ellipse at 30% 30%, #262626 0%, #0A0A0A 70%);color:#fff;}
+.brand-bg .lede{color:rgba(255,255,255,.92);}
+.brand-bg h1.title,.brand-bg h1.display{color:#fff;}
+.brand-bg .eyebrow.orange{color:var(--accent);}
+.brand-bg .eyebrow{color:#fff;}
+.gradient-text{background:linear-gradient(90deg,#FF8A4F,#FF5E1A 50%,#E63946);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.dot{display:inline-block;width:14px;height:14px;border-radius:50%;background:var(--accent);margin:0 14px;vertical-align:middle;}
+.stats{display:flex;gap:60px;margin-top:60px;align-items:flex-end;}
+.stats .stat{display:flex;flex-direction:column;gap:8px;}
+.stats .num{font-family:var(--font-heading);font-weight:700;font-size:96px;color:var(--accent);line-height:1;letter-spacing:-0.04em;}
+.stats .lbl{font-size:16px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#fff;}
+.stats .div{width:1px;align-self:stretch;background:rgba(255,255,255,.15);}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;margin-top:48px;}
+.tile{background:#FAFAFA;border:1px solid var(--border-soft);border-radius:24px;padding:36px;display:flex;flex-direction:column;gap:14px;min-height:340px;}
+.tile.dark{background:var(--fg-1);color:#fff;border-color:#262626;}
+.tile.dark h3{color:#fff;}
+.tile.dark p{color:#D4D4D4;}
+.tile h3{font-family:var(--font-heading);font-weight:700;font-size:26px;margin:0;letter-spacing:-0.01em;line-height:1.1;}
+.tile p{font-size:15px;font-weight:300;color:var(--fg-2);line-height:1.55;margin:0;}
+.tile.dark p{color:#D4D4D4;}
+.tile .pill{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:var(--accent);color:#fff;padding:5px 12px;border-radius:9999px;}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:48px;}
+.bigcard{border-radius:32px;padding:56px;display:flex;flex-direction:column;}
+.bigcard.light{background:#fff;border:1px solid var(--border-soft);box-shadow:0 24px 80px -32px rgba(0,0,0,0.18);}
+.bigcard.dark{background:var(--fg-1);color:#fff;}
+.bigcard.dark h2{color:#fff;}
+.bigcard.dark p.lede{color:#D4D4D4;}
+.bigcard.dark li{color:#fff;}
+.bigcard .ipill{align-self:flex-start;padding:7px 18px;border-radius:9999px;font-size:14px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:24px;}
+.bigcard.light .ipill{background:var(--helios-green-tint);color:var(--helios-green);}
+.bigcard.dark .ipill{background:rgba(255,94,26,.20);color:var(--accent);}
+.bigcard h2{font-family:var(--font-heading);font-weight:700;font-size:60px;letter-spacing:-0.02em;margin:0 0 18px;line-height:1;}
+.bigcard p.lede{font-size:20px;color:var(--fg-2);margin:0 0 32px;}
+.bigcard.dark p.lede{color:#D4D4D4;}
+.bigcard ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:18px;}
+.bigcard li{display:flex;gap:16px;font-size:18px;font-weight:500;align-items:center;}
+.bigcard li::before{content:"";width:24px;height:24px;border-radius:50%;flex-shrink:0;background:var(--helios-green) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>") center/16px no-repeat;}
+.bigcard.dark li::before{background-color:var(--accent);}
+
+.team-row{display:grid;grid-template-columns:repeat(4,1fr);gap:36px;margin-top:48px;}
+.member{display:flex;flex-direction:column;gap:14px;}
+.member__photo{aspect-ratio:4/5;border-radius:24px;background:linear-gradient(135deg,#262626,#525252);display:flex;align-items:center;justify-content:center;color:#737373;font-family:var(--font-heading);font-weight:700;font-size:64px;}
+.member h3{font-family:var(--font-heading);font-weight:700;font-size:24px;margin:0;letter-spacing:-0.01em;}
+.member .role{font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--helios-green);}
+.member p{font-size:14px;font-weight:300;color:var(--fg-2);line-height:1.55;margin:0;}
+
+.logo-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:48px 64px;align-items:center;justify-items:center;margin-top:60px;flex:1;}
+.logo-grid img{max-height:80px;max-width:160px;object-fit:contain;filter:grayscale(1);opacity:.85;}
+.foot-note{margin-top:48px;font-size:18px;color:var(--fg-3);font-weight:300;font-style:italic;}
+
+.cases-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:48px;}
+.case-tile{background:#fff;border:1px solid var(--border-soft);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;}
+.case-tile .img{aspect-ratio:4/3;background:#F5F5F5;overflow:hidden;}
+.case-tile .img img{width:100%;height:100%;object-fit:cover;}
+.case-tile .body{padding:28px 28px 32px;display:flex;flex-direction:column;gap:14px;flex:1;}
+.case-tile .tag{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);}
+.case-tile h3{font-family:var(--font-heading);font-weight:700;font-size:24px;margin:0;letter-spacing:-0.01em;}
+.case-tile p{font-size:14px;font-weight:300;color:var(--fg-2);line-height:1.55;margin:0;flex:1;}
+.case-tile .stats-row{display:flex;gap:18px;margin-top:8px;border-top:1px solid var(--border-soft);padding-top:16px;}
+.case-tile .s-num{font-family:var(--font-heading);font-weight:700;font-size:22px;color:var(--accent);letter-spacing:-0.02em;}
+.case-tile .s-lbl{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-3);margin-top:2px;}
+
+.pricing{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:48px;}
+.tier{background:#fff;border:1px solid var(--border-soft);border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:14px;position:relative;}
+.tier.popular{background:var(--fg-1);color:#fff;border-color:#262626;}
+.tier.popular .price,.tier.popular .desc{color:#fff;}
+.tier .name{font-size:13px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--helios-green);}
+.tier.popular .name{color:var(--accent);}
+.tier .price{font-family:var(--font-heading);font-weight:700;font-size:48px;letter-spacing:-0.03em;line-height:1;}
+.tier .price small{font-size:18px;font-weight:400;color:var(--fg-3);font-family:var(--font-body);}
+.tier.popular .price small{color:#D4D4D4;}
+.tier .desc{font-size:14px;font-weight:300;color:var(--fg-2);line-height:1.55;flex:1;}
+.tier.popular .desc{color:#D4D4D4;}
+.tier .feat{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-1);margin-top:6px;}
+.tier.popular .feat{color:#fff;}
+.tier .badge{position:absolute;top:18px;right:18px;background:var(--accent);color:#fff;padding:4px 12px;border-radius:9999px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
+.setup-line{font-size:18px;color:var(--fg-3);font-weight:300;margin-top:14px;}
+.add-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:32px;}
+.add-row .add{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border:1px solid var(--border-soft);border-radius:14px;background:#FAFAFA;font-size:15px;}
+.add-row .add b{font-weight:700;}
+.add-row .add .price-bit{color:var(--accent);font-weight:700;}
+
+.contact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:60px;}
+.contact-grid .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:36px;border-radius:24px;backdrop-filter:blur(12px);}
+.contact-grid .lbl{font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+.contact-grid .val{font-family:var(--font-heading);font-weight:700;font-size:28px;letter-spacing:-0.01em;color:#fff;}
+
+.helios-logo-bg{position:absolute;pointer-events:none;user-select:none;opacity:.95;}
+.helios-logo-bg img{width:100%;height:100%;object-fit:contain;}
+
+.section-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--fg-3);font-weight:500;letter-spacing:.18em;text-transform:uppercase;border-top:1px solid var(--border-soft);padding-top:24px;}
+.brand-bg .section-foot{color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.15);}
+.section-foot .right{color:var(--accent);font-weight:700;}
+</style>
+</head>
+<body>
+
+<deck-stage>
+
+<!-- 01 — TITLE -->
+<section class="brand-bg" style="padding:80px 110px;">
+  <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:80px;align-items:center;flex:1;height:100%;">
+    <div style="display:flex;flex-direction:column;justify-content:center;">
+      <p class="eyebrow orange">AI-Powered Content Systems</p>
+      <h1 class="display" style="font-size:104px;">We Build<br><span class="gradient-text">AI Marketing</span><br>Systems</h1>
+      <p class="lede" style="margin-top:36px;">Content engines, sales automation, custom agents — we solve the bottleneck, then hand you the system.</p>
+    </div>
+    <div style="display:flex;justify-content:center;align-items:center;padding:40px;">
+      <img src="../assets/Helios-mark.png" alt="Helios" style="width:100%;max-width:480px;height:auto;">
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><span class="num">100+</span><span class="lbl">Ads Weekly</span></div>
+    <div class="div"></div>
+    <div class="stat"><span class="num">80%</span><span class="lbl">Cost Savings</span></div>
+    <div class="div"></div>
+    <div class="stat"><span class="num">10x</span><span class="lbl">More Content</span></div>
+  </div>
+  <div class="section-foot"><span>Helios Marketing</span><span>heliosmarketing.org</span></div>
+</section>
+
+<!-- 02 — TEAM -->
+<section>
+  <p class="eyebrow">The People Behind Helios</p>
+  <h1 class="title">Meet the Team</h1>
+  <p class="lede" style="max-width:880px;">A collective of engineers, marketers, and visionaries obsessed with scaling what works.</p>
+  <div class="team-row">
+    <div class="member"><div class="member__photo">LF</div><h3>Lucas Figueroa</h3><span class="role">Founder &amp; President</span><p>Visionary leader driving Helios's mission to revolutionize marketing through AI systems.</p></div>
+    <div class="member"><div class="member__photo">TP</div><h3>Tommy Pozo</h3><span class="role">Vice President</span><p>Strategic operations and client partnerships. Ensures seamless delivery at scale.</p></div>
+    <div class="member"><div class="member__photo">EP</div><h3>Enrique Perezalonso</h3><span class="role">CTO</span><p>Engineering mastermind. Architects the AI pipelines and automation systems.</p></div>
+    <div class="member"><div class="member__photo">AA</div><h3>AJ Argudin</h3><span class="role">Content Manager</span><p>Creative strategist bringing brand visions to life through AI-powered content.</p></div>
+  </div>
+  <div class="section-foot"><span>02 / 11</span><span class="right">Click to Learn More →</span></div>
+</section>
+
+<!-- 03 — TWO WAYS TO PARTNER -->
+<section style="background:#FAFAFA;">
+  <p class="eyebrow">How We Work</p>
+  <h1 class="title">Two Ways to Partner</h1>
+  <div class="split">
+    <div class="bigcard light">
+      <span class="ipill">Partner Focus</span>
+      <h2>Retainer</h2>
+      <p class="lede">Continuous AI-powered marketing engines that scale with your brand.</p>
+      <ul>
+        <li>Video content production</li>
+        <li>Static content at scale</li>
+        <li>AI influencer partnerships</li>
+        <li>Meta ads management</li>
+        <li>Marketing consulting</li>
+      </ul>
+    </div>
+    <div class="bigcard dark">
+      <span class="ipill">Build &amp; Scale</span>
+      <h2>One-Off Project</h2>
+      <p class="lede">Targeted AI builds to solve specific bottlenecks fast.</p>
+      <ul>
+        <li>Custom AI agents</li>
+        <li>Automated workflows</li>
+        <li>App &amp; SaaS tool builds</li>
+        <li>Premium AI video ads</li>
+        <li>End-to-end pipelines</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section-foot"><span>03 / 11</span><span>Two Ways to Partner</span></div>
+</section>
+
+<!-- 04 — STATIC CONTENT -->
+<section>
+  <p class="eyebrow">The Helios Foundation</p>
+  <h1 class="title">Custom Static Content Engines</h1>
+  <p class="lede" style="max-width:1100px;">Award-winning creators building AI-powered systems that deliver best-in-class content at scale.</p>
+  <div class="grid-4">
+    <div class="tile"><h3>Product Photography</h3><p>High-quality AI-generated product shots with perfect lighting, angles, and backgrounds tailored to your brand aesthetic.</p></div>
+    <div class="tile"><h3>Meta Ads Creatives</h3><p>Scroll-stopping ad creatives optimized for Facebook and Instagram with compelling visuals and copy.</p></div>
+    <div class="tile"><h3>Lifestyle Content</h3><p>Authentic lifestyle imagery featuring your products in real-world settings that resonate with your audience.</p></div>
+    <div class="tile dark"><span class="pill" style="background:#fff;color:#171717;">Custom</span><h3>Need something unique?</h3><p>We build custom static content systems tailored to your exact needs. If you can imagine it, we can create it.</p></div>
+  </div>
+  <div class="section-foot"><span>04 / 11 · Static Content</span><span class="right">See our work →</span></div>
+</section>
+
+<!-- 05 — VIDEO ENGINES -->
+<section style="background:#FAFAFA;">
+  <p class="eyebrow">Video Content Engines</p>
+  <h1 class="title">Custom Video Content Engines</h1>
+  <p class="lede" style="max-width:1100px;">8–10 second animated reels perfect for point-to-text, UGC, and product-focused visuals.</p>
+  <div class="grid-4">
+    <div class="tile"><h3>Point to Text</h3><p>AI Influencers with text-on-screen. Our recommendation for maximum realism and conversion.</p></div>
+    <div class="tile"><h3>UGC Style</h3><p>Authentic user-generated content style videos that feel organic and relatable to your audience.</p></div>
+    <div class="tile"><h3>Product-Focused</h3><p>Showcase your products with eye-catching animated visuals.</p></div>
+    <div class="tile dark"><span class="pill">Premiere</span><h3>Custom</h3><p>Need something unique? We build custom video systems tailored to your exact needs. If you can imagine it, we can animate it.</p></div>
+  </div>
+  <div class="section-foot"><span>05 / 11 · Video Engines</span><span class="right">See our work →</span></div>
+</section>
+
+<!-- 06 — PREMIUM VIDEO + ADS -->
+<section>
+  <p class="eyebrow">Additional Services</p>
+  <h1 class="title">Premium Video and Ads</h1>
+  <div class="split">
+    <div class="bigcard light">
+      <span class="ipill" style="background:rgba(255,94,26,.12);color:var(--accent);">Premium Quality</span>
+      <h2>Premium AI Commercial</h2>
+      <p class="lede">30-60 second ads crafted by award-winning writers, editors, and directors. Designed to wow your audience.</p>
+    </div>
+    <div class="bigcard dark">
+      <span class="ipill">Performance Optimized</span>
+      <h2>Meta Ads Management</h2>
+      <p class="lede">Find winning ads at scale. Ad spend optimized for conversion with data-driven creative testing.</p>
+    </div>
+  </div>
+  <div class="section-foot"><span>06 / 11 · AI Commercial</span><span class="right">See our work →</span></div>
+</section>
+
+<!-- 07 — FLAGSHIP -->
+<section style="background:#FAFAFA;">
+  <p class="eyebrow">Premium Services</p>
+  <h1 class="title">Flagship AI Solutions</h1>
+  <div class="split">
+    <div class="bigcard light">
+      <span class="ipill" style="background:#171717;color:#fff;">Coming Soon</span>
+      <h2 style="font-size:42px;">AI Influencer Partnerships</h2>
+      <p class="lede" style="font-size:16px;">Authentic, marketable personalities. We design, develop, and manage AI influencer accounts to represent your brand organically across social platforms.</p>
+      <ul style="font-size:16px;">
+        <li>Use our existing influencer network</li>
+        <li>Or design custom influencers for your brand</li>
+        <li>Real accounts with organic followings</li>
+        <li>UGC-style content at scale</li>
+      </ul>
+    </div>
+    <div class="bigcard dark">
+      <span class="ipill">Premiere</span>
+      <h2 style="font-size:42px;">Custom AI Systems</h2>
+      <p class="lede" style="font-size:16px;">Full-stack engineering team building custom proprietary systems tailored to your business.</p>
+      <ul style="font-size:16px;">
+        <li>AI Automation Systems and Agents</li>
+        <li>Automated, scalable workflows</li>
+        <li>Tech-stack integrations and custom apps</li>
+        <li>Branded video games and more</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section-foot"><span>07 / 11</span><span>Both at custom pricing tailored to your needs</span></div>
+</section>
+
+<!-- 08 — TRUSTED BY -->
+<section>
+  <p class="eyebrow">Trusted by Leading Brands</p>
+  <h1 class="title">We've Worked With</h1>
+  <div class="logo-grid">
+    <img src="../assets/clients/delilane-logo.png" alt="Delilane">
+    <img src="../assets/clients/Dirtygut-logo.png" alt="Dirty Gut">
+    <img src="../assets/clients/i90-logo.png" alt="i90">
+    <img src="../assets/clients/joi-logo.jpg" alt="Joi">
+    <img src="../assets/clients/kpizza-logo.png" alt="K Pizza">
+    <img src="../assets/clients/levelup-logo.png" alt="Level Up">
+    <img src="../assets/clients/localboy-logo.webp" alt="Local Boy">
+    <img src="../assets/clients/msstours-logo.png" alt="MSS Tours">
+    <img src="../assets/clients/nextamp-logo.png" alt="NextAMP">
+    <img src="../assets/clients/subbys-logo.webp" alt="Subby's">
+    <img src="../assets/clients/sunsettavern-logo.jpeg" alt="Sunset Tavern">
+    <img src="../assets/clients/thesource-logo.png" alt="The Source">
+  </div>
+  <p class="foot-note">…and many more across retail, real estate, hospitality, and nightlife.</p>
+  <div class="section-foot"><span>08 / 11</span><span>Trusted by Leading Brands</span></div>
+</section>
+
+<!-- 09 — CASE STUDIES -->
+<section style="background:#FAFAFA;">
+  <p class="eyebrow">Proven Results</p>
+  <h1 class="title">Case Studies</h1>
+  <div class="cases-grid">
+    <div class="case-tile">
+      <div class="img"><img src="../assets/case-studies/thumbnails/flyer-logo.png" alt=""></div>
+      <div class="body">
+        <span class="tag">Product · AI Tool</span>
+        <h3>FlyerStudio.AI</h3>
+        <p>End-to-end AI generation pipeline for nightlife poster designs. Automated creative at scale.</p>
+        <div class="stats-row">
+          <div><div class="s-num">AI</div><div class="s-lbl">Pipeline</div></div>
+          <div><div class="s-num">Auto</div><div class="s-lbl">Generation</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="case-tile">
+      <div class="img"><img src="../assets/case-studies/thumbnails/localboy-thumbnail.png" alt=""></div>
+      <div class="body">
+        <span class="tag">Product · Content</span>
+        <h3>Local Boy Outfitters</h3>
+        <p>AI-generated product photography for 400+ SKUs. Massive time and cost savings.</p>
+        <div class="stats-row">
+          <div><div class="s-num">750+</div><div class="s-lbl">Photos / Season</div></div>
+          <div><div class="s-num">100+</div><div class="s-lbl">Hrs Saved / Mo</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="case-tile">
+      <div class="img"><img src="../assets/case-studies/media/The Source/Doral_0004.png" alt=""></div>
+      <div class="body">
+        <span class="tag">Real Estate · Video</span>
+        <h3>The Source Real Estate</h3>
+        <p>Premium AI video ads and image generation for luxury property marketing.</p>
+        <div class="stats-row">
+          <div><div class="s-num">1,000+</div><div class="s-lbl">AI Images</div></div>
+          <div><div class="s-num">Video</div><div class="s-lbl">Premium Ads</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="section-foot"><span>09 / 11 · Proven Results</span><span class="right">Click to Learn More →</span></div>
+</section>
+
+<!-- 10 — PRICING -->
+<section>
+  <p class="eyebrow">Pricing</p>
+  <h1 class="title">Choose Your Plan</h1>
+  <p class="setup-line">One-time setup fee: <b style="color:var(--fg-1);font-weight:600;">$750–$2,000</b></p>
+  <div class="pricing">
+    <div class="tier"><div class="name">Starter</div><div class="price">$950<small> /mo</small></div><div class="desc">30 static creatives delivered weekly. Perfect for brands starting with AI content.</div><div class="feat">30 Statics / Week</div></div>
+    <div class="tier popular"><span class="badge">Popular</span><div class="name">Growth</div><div class="price">$1,250<small> /mo</small></div><div class="desc">50 statics delivered weekly. The sweet spot for scaling brands.</div><div class="feat">50 Statics / Week</div></div>
+    <div class="tier"><div class="name">Scale</div><div class="price">$2,150<small> /mo</small></div><div class="desc">100 statics weekly. Maximum output for high-volume brands.</div><div class="feat">100 Statics / Week</div></div>
+    <div class="tier"><div class="name">Ads Manager</div><div class="price">$950<small> /mo</small></div><div class="desc">Meta ads management. Focus on performance optimization.</div><div class="feat">Meta Ads Mgmt</div></div>
+  </div>
+  <div class="add-row">
+    <div class="add"><span><b>Premium AI Commercial</b> — 30-60s commercial</span><span class="price-bit">$4,000 one-time</span></div>
+    <div class="add"><span><b>AI Video Retainers</b> — ongoing video content</span><span class="price-bit">From $2,950/mo</span></div>
+    <div class="add"><span><b>AI Influencer Partnerships</b> — coming soon</span><span class="price-bit">Custom Quote</span></div>
+    <div class="add"><span><b>Custom AI Systems</b> — Premiere</span><span class="price-bit">Custom Quote</span></div>
+  </div>
+  <div class="section-foot"><span>10 / 11 · Pricing</span><span>All plans cancel anytime</span></div>
+</section>
+
+<!-- 11 — CLOSING -->
+<section class="brand-bg">
+  <div style="display:flex;align-items:center;gap:80px;">
+    <img src="../assets/Helios-mark.png" alt="Helios" style="width:320px;height:auto;flex-shrink:0;">
+    <div>
+      <p class="eyebrow orange">Ready to Scale?</p>
+      <h1 class="display" style="font-size:104px;">Let's Build<br><span class="gradient-text">Your System.</span></h1>
+      <p class="lede" style="margin-top:24px;">Book a call to see how Helios can transform your content pipeline.</p>
+    </div>
+  </div>
+  <div class="contact-grid">
+    <div class="card"><div class="lbl">Email</div><div class="val">lucas@heliosmarketing.org</div></div>
+    <div class="card"><div class="lbl">Website</div><div class="val">heliosmarketing.org</div></div>
+    <div class="card"><div class="lbl">Instagram</div><div class="val">@heliosmarketingg</div></div>
+  </div>
+  <div class="section-foot"><span>11 / 11</span><span class="right">Helios Marketing — AI Marketing Systems</span></div>
+</section>
+
+</deck-stage>
+
+<script src="deck-stage.js"></script>
+</body>
+</html>
