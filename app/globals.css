@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "../styles/colors_and_type.css";
+
+/* Pragmatica Extended is shipped locally — only Bold weight is licensed */
+@font-face {
+  font-family: "Pragmatica Extended";
+  src: url("/fonts/PragmaticaExtended-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
