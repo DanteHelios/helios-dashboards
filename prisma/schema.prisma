@@ -9,5 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")   // pooler/transaction URL (port 6543) — used by the app
+  directUrl = env("DIRECT_URL")    // direct connection (port 5432) — used by Prisma migrations
 }
