@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { updateProject, regenerateToken, type ActionState } from "@/app/admin/projects/actions";
 import ClientCombobox from "@/components/admin/ClientCombobox";
+import DeckUploadZone from "@/components/admin/DeckUploadZone";
 import { formatDate } from "@/lib/utils";
 
 type Client = { id: string; name: string };
@@ -118,6 +119,12 @@ export default function EditProjectForm({
             </button>
           )}
         </div>
+      </div>
+
+      {/* Deck upload */}
+      <div className="rounded-xl border border-border bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-fg-1">Project deck (PDF)</h2>
+        <DeckUploadZone projectId={project.id} currentUrl={project.deckPdfUrl} />
       </div>
 
       {/* Edit form */}

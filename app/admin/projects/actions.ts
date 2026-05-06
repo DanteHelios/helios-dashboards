@@ -4,6 +4,7 @@ import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Octokit } from "@octokit/rest";
+import { put, del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 
 export type ActionState = {
@@ -172,4 +173,39 @@ export async function regenerateToken(id: string): Promise<{ newToken: string }>
   revalidatePath(`/admin/projects/${id}`);
   revalidatePath("/admin");
   return { newToken };
+}
+
+const MAX_DECK_BYTES = 25 * 1024 * 1024;
+
+export async function uploadDeck(
+  id: string,
+  formData: FormData
+): Promise<{ url: string } | { error: string }> {
+  const file = formData.get("deck") as File | null;
+  if (!file || file.size === 0) return { error: "No file selected." };
+  if (file.type !== "application/pdf") return { error: "File must be a PDF." };
+  if (file.size > MAX_DECK_BYTES) {
+    return { error: `File must be 25 MB or smaller (got ${(file.size / 1024 / 1024).toFixed(1)} MB).` };
+  }
+
+  const filename = `decks/${id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const blob = await put(filename, file, { access: "public" });
+
+  await prisma.project.update({ where: { id }, data: { deckPdfUrl: blob.url } });
+  revalidatePath(`/admin/projects/${id}`);
+  revalidatePath("/admin");
+  return { url: blob.url };
+}
+
+export async function removeDeck(id: string, existingUrl: string | null): Promise<void> {
+  if (existingUrl) {
+    try {
+      await del(existingUrl);
+    } catch {
+      // Non-fatal — still clear the DB reference
+    }
+  }
+  await prisma.project.update({ where: { id }, data: { deckPdfUrl: null } });
+  revalidatePath(`/admin/projects/${id}`);
+  revalidatePath("/admin");
 }

@@ -66,12 +66,22 @@ export default async function AdminProjectsPage() {
               {projects.map((p) => (
                 <tr key={p.id} className="hover:bg-bg-alt transition-colors">
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/projects/${p.id}`}
-                      className="font-medium text-fg-1 hover:text-accent transition-colors"
-                    >
-                      {p.name}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/projects/${p.id}`}
+                        className="font-medium text-fg-1 hover:text-accent transition-colors"
+                      >
+                        {p.name}
+                      </Link>
+                      {!p.deckPdfUrl && (
+                        <span
+                          title="No deck uploaded"
+                          className="rounded-pill bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
+                        >
+                          ⚠ No deck
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-0.5 text-xs text-fg-muted font-mono">
                       {p.githubRepo}
                     </p>

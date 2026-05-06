@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "25mb",
+    },
+  },
 };
 
 export default nextConfig;
