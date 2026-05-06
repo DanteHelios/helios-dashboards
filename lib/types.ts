@@ -28,8 +28,9 @@ export function isPrMergedMeta(meta: unknown): meta is PrMergedMeta {
 // Mirror of Prisma enums
 export type RepoEventType = "COMMIT" | "PR_MERGED" | "ISSUE_CLOSED";
 export type ProjectStatus = "ACTIVE" | "PAUSED" | "COMPLETE" | "ARCHIVED";
+export type GenSource = "CRON" | "MANUAL";
 
-// Page-level data types — mirror the Prisma model shape so Phase 2 swap is one line
+// Dashboard-specific shape — mirrors the Prisma model, omitting unused server-side fields
 export type RepoEvent = {
   id: string;
   projectId: string;
@@ -42,8 +43,6 @@ export type RepoEvent = {
   authorAvatarUrl: string | null;
   url: string;
   occurredAt: Date;
-  meta: unknown;
-  fetchedAt: Date;
 };
 
 export type ContextUpdate = {
@@ -53,6 +52,7 @@ export type ContextUpdate = {
   windowStart: Date;
   windowEnd: Date;
   generatedAt: Date;
+  generatedBy: GenSource;
 };
 
 export type DashboardProject = {
@@ -72,4 +72,5 @@ export type DashboardPageData = {
   latestUpdate: ContextUpdate | null;
   historyUpdates: ContextUpdate[];
   recentEvents: RepoEvent[];
+  eventsById: Record<string, RepoEvent>;
 };

@@ -1,15 +1,106 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
   output   = "../app/generated/prisma"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")   // pooler/transaction URL (port 6543) — used by the app
-  directUrl = env("DIRECT_URL")    // direct connection (port 5432) — used by Prisma migrations
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model Client {
+  id           String    @id @default(cuid())
+  name         String
+  contactEmail String?
+  createdAt    DateTime  @default(now())
+  projects     Project[]
+}
+
+model Project {
+  id                String        @id @default(cuid())
+  clientId          String
+  client            Client        @relation(fields: [clientId], references: [id])
+  name              String
+  status            ProjectStatus @default(ACTIVE)
+
+  startDate         DateTime
+  targetEndDate     DateTime
+  completedAt       DateTime?
+
+  accessToken       String        @unique
+  githubRepo        String
+  githubBranch      String        @default("main")
+  githubLastSyncAt  DateTime?
+  readmeMarkdown    String?       @db.Text
+  readmeFetchedAt   DateTime?
+
+  deckPdfUrl        String?
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  events            RepoEvent[]
+  contextUpdates    ContextUpdate[]
+
+  @@index([accessToken])
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  COMPLETE
+  ARCHIVED
+}
+
+model RepoEvent {
+  id              String        @id @default(cuid())
+  projectId       String
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  type            RepoEventType
+  externalId      String
+  title           String        @db.Text
+  body            String?       @db.Text
+  authorName      String
+  authorLogin     String?
+  authorAvatarUrl String?
+  url             String
+  occurredAt      DateTime
+  meta            Json?
+  fetchedAt       DateTime      @default(now())
+
+  @@unique([projectId, type, externalId])
+  @@index([projectId, occurredAt(sort: Desc)])
+  @@index([projectId, type, occurredAt])
+}
+
+enum RepoEventType {
+  COMMIT
+  PR_MERGED
+  ISSUE_CLOSED
+  RELEASE
+}
+
+model ContextUpdate {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  bullets     Json
+  windowStart DateTime
+  windowEnd   DateTime
+  generatedAt DateTime  @default(now())
+  generatedBy GenSource @default(CRON)
+
+  @@index([projectId, generatedAt(sort: Desc)])
+}
+
+enum GenSource {
+  CRON
+  MANUAL
 }

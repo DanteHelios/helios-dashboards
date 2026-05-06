@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import Image from "next/image";
 import { differenceInCalendarDays, format, formatDistanceToNow } from "date-fns";
 import { GitCommit, GitPullRequest, CircleCheck } from "lucide-react";
 
-import { DEMO_DATA, DEMO_EVENTS_BY_ID } from "@/lib/demo-data";
+import { getDashboardData } from "@/lib/data";
 import type { RepoEvent } from "@/lib/types";
 import Eyebrow from "@/components/Eyebrow";
 import SourceChip from "@/components/SourceChip";
@@ -21,11 +22,29 @@ function EventTypeIcon({ type }: { type: RepoEvent["type"] }) {
   return <CircleCheck className={`${cls} text-[#FF5E1A]`} />;
 }
 
-export default function DashboardPage() {
-  // Phase 2: replace next line with → const data = await getDashboardData(params.token);
-  const data = DEMO_DATA;
+export default async function DashboardPage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+  const data = await getDashboardData(token);
+  if (!data) notFound();
 
-  const { project, latestUpdate, historyUpdates, recentEvents } = data;
+  const { project, latestUpdate, historyUpdates, recentEvents, eventsById } = data;
+
+  if (project.status === "ARCHIVED") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg-page px-6 text-center font-body">
+        <div>
+          <Eyebrow color="ink" className="mb-4">Project Archived</Eyebrow>
+          <p className="text-body font-light text-fg-2">
+            This project has been archived and is no longer active.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const today = new Date();
   const daysElapsed = differenceInCalendarDays(today, project.startDate);
@@ -34,6 +53,22 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-bg-page font-body">
+
+      {/* Status banner — PAUSED or COMPLETE */}
+      {project.status === "PAUSED" && (
+        <div className="bg-[#FFF8F5] border-b border-[#FFCFB8] px-6 py-3 text-center">
+          <p className="text-sm font-medium text-[#C94C00]">
+            This project is currently paused. The next update will appear when work resumes.
+          </p>
+        </div>
+      )}
+      {project.status === "COMPLETE" && project.completedAt && (
+        <div className="bg-[#F0FAF0] border-b border-[#A8D9A7] px-6 py-3 text-center">
+          <p className="text-sm font-medium text-[#138510]">
+            This project completed on {format(project.completedAt, "MMMM d, yyyy")}. Final summary below.
+          </p>
+        </div>
+      )}
 
       {/* Top bar */}
       <header className="sticky top-0 z-50 border-b border-border-soft bg-white/95 backdrop-blur-md">
@@ -75,7 +110,7 @@ export default function DashboardPage() {
               <ul className="space-y-6">
                 {latestUpdate.bullets.bullets.map((bullet, i) => {
                   const sourceEvents = bullet.sources
-                    .map((s) => DEMO_EVENTS_BY_ID[s.eventId as keyof typeof DEMO_EVENTS_BY_ID])
+                    .map((s) => eventsById[s.eventId])
                     .filter(Boolean);
                   return (
                     <li
@@ -129,7 +164,6 @@ export default function DashboardPage() {
               className="animate-fade-in-up overflow-hidden rounded-card-lg border border-border-soft shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
               style={{ animationDelay: "0.3s" }}
             >
-              {/* Mobile: link; tablet+: embedded iframe */}
               <a
                 href={project.deckPdfUrl}
                 target="_blank"
