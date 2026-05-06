@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-export const config = {
-  matcher: ["/d/:token*"],
-};
+const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
+const isDashboardRoute = createRouteMatcher(["/d/:token*"]);
 
 let ratelimit: Ratelimit | null = null;
 
@@ -21,19 +21,29 @@ function getRatelimit(): Ratelimit | null {
   return ratelimit;
 }
 
-export async function middleware(req: NextRequest) {
-  const limiter = getRatelimit();
-  if (!limiter) return NextResponse.next();
-
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown";
-
-  const { success } = await limiter.limit(ip);
-  if (!success) {
-    return new NextResponse("Too many requests", { status: 429 });
+export default clerkMiddleware(async (auth, req) => {
+  if (isAdminRoute(req)) {
+    await auth.protect();
   }
 
-  return NextResponse.next();
-}
+  if (isDashboardRoute(req)) {
+    const limiter = getRatelimit();
+    if (limiter) {
+      const ip =
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+        req.headers.get("x-real-ip") ??
+        "unknown";
+      const { success } = await limiter.limit(ip);
+      if (!success) {
+        return new NextResponse("Too many requests", { status: 429 });
+      }
+    }
+  }
+});
+
+export const config = {
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
+};
