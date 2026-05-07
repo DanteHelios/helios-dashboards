@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Octokit } from "@octokit/rest";
 import { put, del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
+import { syncProject } from "@/lib/github-sync";
 
 export type ActionState = {
   error?: string;
@@ -208,4 +209,16 @@ export async function removeDeck(id: string, existingUrl: string | null): Promis
   await prisma.project.update({ where: { id }, data: { deckPdfUrl: null } });
   revalidatePath(`/admin/projects/${id}`);
   revalidatePath("/admin");
+}
+
+export async function triggerSync(
+  id: string
+): Promise<{ synced: number; skipped: number; error?: string }> {
+  try {
+    const result = await syncProject(id);
+    revalidatePath(`/admin/projects/${id}`);
+    return result;
+  } catch (e: unknown) {
+    return { synced: 0, skipped: 0, error: String(e) };
+  }
 }
