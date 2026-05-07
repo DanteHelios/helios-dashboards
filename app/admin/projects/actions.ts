@@ -7,6 +7,7 @@ import { Octokit } from "@octokit/rest";
 import { put, del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { syncProject } from "@/lib/github-sync";
+import { generateUpdate } from "@/lib/ai";
 
 export type ActionState = {
   error?: string;
@@ -220,5 +221,20 @@ export async function triggerSync(
     return result;
   } catch (e: unknown) {
     return { synced: 0, skipped: 0, error: String(e) };
+  }
+}
+
+export async function generateUpdateAction(
+  id: string
+): Promise<{ generated: boolean; error?: string }> {
+  try {
+    const update = await generateUpdate(id, { manual: true });
+    if (update) {
+      revalidatePath(`/admin/projects/${id}`);
+      return { generated: true };
+    }
+    return { generated: false };
+  } catch (e: unknown) {
+    return { generated: false, error: String(e) };
   }
 }

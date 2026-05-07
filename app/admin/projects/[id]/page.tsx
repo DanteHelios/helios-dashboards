@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getAdminProject, getAllClients } from "@/lib/admin-data";
 import EditProjectForm from "./EditProjectForm";
 import SyncButton from "./SyncButton";
+import GenerateUpdateButton from "./GenerateUpdateButton";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export default async function EditProjectPage({
         <p className="mt-1 text-sm font-light text-fg-3">{project.client.name}</p>
       </div>
       <div className="space-y-6">
+        <GenerateUpdateButton projectId={project.id} />
         <SyncButton projectId={project.id} lastSyncAt={project.githubLastSyncAt} />
         <EditProjectForm project={project} clients={clients} />
       </div>
