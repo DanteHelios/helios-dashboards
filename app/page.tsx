@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import Button from "@/components/Button";
 import Eyebrow from "@/components/Eyebrow";
 import Pill from "@/components/Pill";
@@ -38,12 +39,12 @@ export default function Home() {
           </p>
 
           <div className="flex flex-wrap items-center gap-4">
-            <Button variant="primary">
-              View Dashboard
-            </Button>
-            <Button variant="outline">
-              Admin Login
-            </Button>
+            <Link href="/d/demo-token-replace-me-in-prod">
+              <Button variant="primary">View Dashboard</Button>
+            </Link>
+            <Link href="/admin">
+              <Button variant="outline">Admin Login</Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -107,9 +108,11 @@ export default function Home() {
           Pragmatica Extended Bold heading. Roboto Light body. Orange glow on the
           primary CTA. Tokens wired.
         </p>
-        <Button variant="primary" className="text-base px-8 py-4">
-          Get Started
-        </Button>
+        <Link href="/admin">
+          <Button variant="primary" className="text-base px-8 py-4">
+            Get Started
+          </Button>
+        </Link>
       </section>
 
       {/* Footer */}
