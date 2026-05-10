@@ -194,7 +194,7 @@ export async function uploadDeck(
 
   let blob: { url: string };
   try {
-    blob = await put(filename, file, { access: "public" });
+    blob = await put(filename, file, { access: "private" });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[uploadDeck] Blob put failed:", msg);
