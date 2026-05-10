@@ -51,23 +51,33 @@ export default function DeckUploadZone({ projectId, currentUrl }: DeckUploadZone
     if (!pendingFile) return;
     setUploading(true);
     setError(null);
-    const fd = new FormData();
-    fd.append("deck", pendingFile);
-    const result = await uploadDeck(projectId, fd);
-    if ("error" in result) {
-      setError(result.error);
-    } else {
-      setLiveUrl(result.url);
-      setPendingFile(null);
+    try {
+      const fd = new FormData();
+      fd.append("deck", pendingFile);
+      const result = await uploadDeck(projectId, fd);
+      if ("error" in result) {
+        setError(result.error);
+      } else {
+        setLiveUrl(result.url);
+        setPendingFile(null);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Upload failed — check that BLOB_READ_WRITE_TOKEN is set in Vercel.");
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   }
 
   async function handleRemove() {
     setRemoving(true);
-    await removeDeck(projectId, liveUrl);
-    setLiveUrl(null);
-    setRemoving(false);
+    try {
+      await removeDeck(projectId, liveUrl);
+      setLiveUrl(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Remove failed. Try again.");
+    } finally {
+      setRemoving(false);
+    }
   }
 
   const dropZoneCls =
