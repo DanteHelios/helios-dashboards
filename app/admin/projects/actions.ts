@@ -191,9 +191,24 @@ export async function uploadDeck(
   }
 
   const filename = `decks/${id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  const blob = await put(filename, file, { access: "public" });
 
-  await prisma.project.update({ where: { id }, data: { deckPdfUrl: blob.url } });
+  let blob: { url: string };
+  try {
+    blob = await put(filename, file, { access: "public" });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[uploadDeck] Blob put failed:", msg);
+    return { error: `Upload failed: ${msg}` };
+  }
+
+  try {
+    await prisma.project.update({ where: { id }, data: { deckPdfUrl: blob.url } });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[uploadDeck] DB update failed:", msg);
+    return { error: `Uploaded to storage but failed to save URL: ${msg}` };
+  }
+
   revalidatePath(`/admin/projects/${id}`);
   revalidatePath("/admin");
   return { url: blob.url };
