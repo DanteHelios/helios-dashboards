@@ -165,7 +165,7 @@ export default async function DashboardPage({
               style={{ animationDelay: "0.3s" }}
             >
               <a
-                href={project.deckPdfUrl}
+                href={`/api/deck/${project.accessToken}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 bg-white p-4 text-sm font-medium text-accent hover:underline md:hidden"
@@ -173,7 +173,7 @@ export default async function DashboardPage({
                 Open project deck ↗
               </a>
               <iframe
-                src={`${project.deckPdfUrl}#toolbar=0&navpanes=0&view=FitH`}
+                src={`/api/deck/${project.accessToken}#toolbar=0&navpanes=0&view=FitH`}
                 title="Project deck"
                 className="hidden h-[70vh] min-h-[480px] w-full md:block"
               />
