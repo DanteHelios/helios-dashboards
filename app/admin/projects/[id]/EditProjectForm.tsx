@@ -174,12 +174,11 @@ export default function EditProjectForm({
         {/* GitHub repo */}
         <div>
           <label className="mb-1.5 block text-sm font-medium text-fg-1">
-            GitHub repo <span className="text-red-400">*</span>
+            GitHub repo
           </label>
           <input
             name="githubRepo"
             type="text"
-            required
             defaultValue={project.githubRepo}
             placeholder="owner/repo"
             className={inputCls(fe.githubRepo)}

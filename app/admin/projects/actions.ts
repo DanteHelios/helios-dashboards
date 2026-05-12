@@ -83,12 +83,15 @@ export async function createProject(
   const status = (formData.get("status") as string) || "ACTIVE";
 
   if (!name) return { fieldErrors: { name: "Project name is required." } };
-  if (!githubRepoRaw) return { fieldErrors: { githubRepo: "GitHub repo is required." } };
   if (!startDateStr) return { fieldErrors: { startDate: "Start date is required." } };
   if (!targetEndDateStr) return { fieldErrors: { targetEndDate: "Target end date is required." } };
 
-  const repoResult = await validateRepo(githubRepoRaw);
-  if ("error" in repoResult) return { fieldErrors: { githubRepo: repoResult.error } };
+  let repoSlug: string | null = null;
+  if (githubRepoRaw) {
+    const repoResult = await validateRepo(githubRepoRaw);
+    if ("error" in repoResult) return { fieldErrors: { githubRepo: repoResult.error } };
+    repoSlug = repoResult.repoSlug;
+  }
 
   const clientResult = await resolveClient(clientId, clientName);
   if ("error" in clientResult) return { fieldErrors: { clientId: clientResult.error } };
@@ -109,7 +112,7 @@ export async function createProject(
       startDate,
       targetEndDate,
       accessToken,
-      githubRepo: repoResult.repoSlug,
+      githubRepo: repoSlug ?? "",
       githubBranch,
     },
   });
@@ -135,10 +138,13 @@ export async function updateProject(
   const cronEnabled = formData.get("cronEnabled") === "on";
 
   if (!name) return { fieldErrors: { name: "Project name is required." } };
-  if (!githubRepoRaw) return { fieldErrors: { githubRepo: "GitHub repo is required." } };
 
-  const repoResult = await validateRepo(githubRepoRaw);
-  if ("error" in repoResult) return { fieldErrors: { githubRepo: repoResult.error } };
+  let repoSlug: string | null = null;
+  if (githubRepoRaw) {
+    const repoResult = await validateRepo(githubRepoRaw);
+    if ("error" in repoResult) return { fieldErrors: { githubRepo: repoResult.error } };
+    repoSlug = repoResult.repoSlug;
+  }
 
   const clientResult = await resolveClient(clientId, clientName);
   if ("error" in clientResult) return { fieldErrors: { clientId: clientResult.error } };
@@ -160,7 +166,7 @@ export async function updateProject(
       startDate,
       targetEndDate,
       completedAt,
-      githubRepo: repoResult.repoSlug,
+      githubRepo: repoSlug ?? "",
       githubBranch,
       cronEnabled,
     },
