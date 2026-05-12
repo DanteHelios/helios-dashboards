@@ -42,6 +42,9 @@ model Project {
 
   deckPdfUrl        String?
 
+  cronEnabled       Boolean       @default(true)
+  cronStatus        String        @default("IDLE")
+
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

@@ -9,6 +9,8 @@ import type { RepoEvent } from "@/lib/types";
 import Eyebrow from "@/components/Eyebrow";
 import SourceChip from "@/components/SourceChip";
 import HistoryAccordion from "./HistoryAccordion";
+import DaysProgressBar from "@/components/dashboard/DaysProgressBar";
+import GitHubEmptyState from "@/components/dashboard/GitHubEmptyState";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -47,8 +49,6 @@ export default async function DashboardPage({
   }
 
   const today = new Date();
-  const daysElapsed = differenceInCalendarDays(today, project.startDate);
-  const totalDays = differenceInCalendarDays(project.targetEndDate, project.startDate);
   const daysRemaining = differenceInCalendarDays(project.targetEndDate, today);
 
   return (
@@ -84,9 +84,7 @@ export default async function DashboardPage({
           <p className="absolute left-1/2 -translate-x-1/2 text-sm font-medium text-fg-1 hidden sm:block truncate max-w-[40%]">
             {project.name}
           </p>
-          <span className="inline-flex items-center rounded-pill bg-[#FF5E1A] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-white">
-            Day {daysElapsed} of {totalDays}
-          </span>
+          <div className="w-[100px]" />
         </div>
       </header>
 
@@ -98,7 +96,21 @@ export default async function DashboardPage({
             style={{ animationDelay: "0s" }}
           >
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-              <Eyebrow color="green">Latest Update</Eyebrow>
+              <div className="flex items-center gap-3">
+                <Eyebrow color="green">Latest Update</Eyebrow>
+                {project.cronStatus === "RUNNING" && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#138510]">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#138510] opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[#138510]" />
+                    </span>
+                    Updating…
+                  </span>
+                )}
+                {!project.cronEnabled && project.cronStatus !== "RUNNING" && (
+                  <span className="text-[11px] font-light text-fg-muted">● Updates paused</span>
+                )}
+              </div>
               {latestUpdate && (
                 <p className="text-xs font-light text-fg-3">
                   {format(latestUpdate.generatedAt, "MMMM d, yyyy")} · {daysRemaining} days remaining
@@ -145,6 +157,18 @@ export default async function DashboardPage({
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Timeline progress */}
+      <section className="py-12">
+        <div className="mx-auto max-w-[1280px] px-6">
+          <div className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+            <DaysProgressBar
+              startDate={project.startDate}
+              targetEndDate={project.targetEndDate}
+            />
           </div>
         </div>
       </section>
@@ -211,7 +235,9 @@ export default async function DashboardPage({
             </h2>
           </div>
 
-          {recentEvents.length === 0 ? (
+          {!project.githubRepo ? (
+            <GitHubEmptyState />
+          ) : recentEvents.length === 0 ? (
             <p className="text-body-sm font-light text-fg-muted">
               No recent activity in the project repo.
             </p>

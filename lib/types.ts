@@ -64,6 +64,9 @@ export type DashboardProject = {
   completedAt: Date | null;
   accessToken: string;
   deckPdfUrl: string | null;
+  githubRepo: string;
+  cronEnabled: boolean;
+  cronStatus: string;
   client: { id: string; name: string };
 };
 

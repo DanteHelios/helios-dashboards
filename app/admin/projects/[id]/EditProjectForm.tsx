@@ -20,6 +20,7 @@ type Project = {
   githubRepo: string;
   githubBranch: string;
   deckPdfUrl: string | null;
+  cronEnabled: boolean;
   client: Client;
 };
 
@@ -249,6 +250,24 @@ export default function EditProjectForm({
             <option value="COMPLETE">Complete</option>
             <option value="ARCHIVED">Archived</option>
           </select>
+        </div>
+
+        {/* AI cron toggle */}
+        <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-fg-1">AI update cron</p>
+            <p className="mt-0.5 text-xs text-fg-3">Generate updates automatically on schedule</p>
+          </div>
+          <div className="relative inline-block h-5 w-9 shrink-0">
+            <input
+              type="checkbox"
+              name="cronEnabled"
+              defaultChecked={project.cronEnabled}
+              className="peer sr-only"
+            />
+            <span className="block h-full w-full cursor-pointer rounded-full bg-neutral-200 transition-colors peer-checked:bg-[#FF5E1A]" />
+            <span className="pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-4" />
+          </div>
         </div>
 
         {/* Completed at — only shown when status is COMPLETE */}

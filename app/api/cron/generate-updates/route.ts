@@ -16,12 +16,16 @@ export async function GET(req: NextRequest) {
   }
 
   const projects = await prisma.project.findMany({
-    where: { status: "ACTIVE" },
+    where: { status: "ACTIVE", cronEnabled: true },
     select: { id: true, name: true },
   });
 
   const results = [];
   for (const p of projects) {
+    await prisma.project.update({
+      where: { id: p.id },
+      data: { cronStatus: "RUNNING" },
+    });
     try {
       const update = await generateUpdate(p.id);
       console.log("[cron] generate-updates heartbeat", {
@@ -32,6 +36,11 @@ export async function GET(req: NextRequest) {
     } catch (e: unknown) {
       captureException(e, { projectId: p.id });
       results.push({ id: p.id, name: p.name, generated: false, error: String(e) });
+    } finally {
+      await prisma.project.update({
+        where: { id: p.id },
+        data: { cronStatus: "IDLE" },
+      });
     }
   }
 

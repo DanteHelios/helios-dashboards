@@ -132,6 +132,7 @@ export async function updateProject(
   const targetEndDateStr = formData.get("targetEndDate") as string;
   const status = formData.get("status") as string;
   const completedAtStr = formData.get("completedAt") as string;
+  const cronEnabled = formData.get("cronEnabled") === "on";
 
   if (!name) return { fieldErrors: { name: "Project name is required." } };
   if (!githubRepoRaw) return { fieldErrors: { githubRepo: "GitHub repo is required." } };
@@ -161,6 +162,7 @@ export async function updateProject(
       completedAt,
       githubRepo: repoResult.repoSlug,
       githubBranch,
+      cronEnabled,
     },
   });
 

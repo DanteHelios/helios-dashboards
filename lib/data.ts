@@ -109,6 +109,9 @@ export async function getDashboardData(
       completedAt: project.completedAt,
       accessToken: project.accessToken,
       deckPdfUrl: project.deckPdfUrl,
+      githubRepo: project.githubRepo,
+      cronEnabled: project.cronEnabled,
+      cronStatus: project.cronStatus,
       client: project.client,
     },
     latestUpdate: latestUpdate
