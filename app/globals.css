@@ -1,8 +1,8 @@
+@import "../styles/colors_and_type.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "../styles/colors_and_type.css";
 
 /* Pragmatica Extended is shipped locally — only Bold weight is licensed */
 @font-face {

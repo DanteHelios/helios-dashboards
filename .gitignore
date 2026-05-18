@@ -27,3 +27,6 @@ prisma/dev.db-journal
 
 /app/generated/prisma
 .vercel
+
+# clerk configuration (can include secrets)
+/.clerk/
