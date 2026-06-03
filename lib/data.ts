@@ -112,6 +112,7 @@ export async function getDashboardData(
       githubRepo: project.githubRepo,
       cronEnabled: project.cronEnabled,
       cronStatus: project.cronStatus,
+      mvpDelivered: project.mvpDelivered,
       client: project.client,
     },
     latestUpdate: latestUpdate

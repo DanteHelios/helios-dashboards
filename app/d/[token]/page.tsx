@@ -168,6 +168,7 @@ export default async function DashboardPage({
             <DaysProgressBar
               startDate={project.startDate}
               targetEndDate={project.targetEndDate}
+              mvpDelivered={project.mvpDelivered}
             />
           </div>
         </div>

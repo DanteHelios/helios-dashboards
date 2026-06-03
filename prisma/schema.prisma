@@ -46,6 +46,8 @@ model Project {
   cronEnabled       Boolean       @default(true)
   cronStatus        String        @default("IDLE")
 
+  mvpDelivered      Boolean       @default(false)
+
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

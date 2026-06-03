@@ -3,9 +3,27 @@ import { differenceInCalendarDays, format } from "date-fns";
 type Props = {
   startDate: Date;
   targetEndDate: Date;
+  mvpDelivered?: boolean;
 };
 
-export default function DaysProgressBar({ startDate, targetEndDate }: Props) {
+export default function DaysProgressBar({
+  startDate,
+  targetEndDate,
+  mvpDelivered,
+}: Props) {
+  if (mvpDelivered) {
+    return (
+      <div className="mx-auto w-full max-w-[680px] text-center">
+        <p className="font-heading text-[clamp(28px,3vw,42px)] font-bold leading-none tracking-tight text-fg-1">
+          MVP Delivered
+        </p>
+        <p className="mt-3 text-body font-light text-fg-2">
+          Continuous improvements ongoing
+        </p>
+      </div>
+    );
+  }
+
   const today = new Date();
   const daysElapsed = Math.max(0, differenceInCalendarDays(today, startDate));
   const totalDays = Math.max(1, differenceInCalendarDays(targetEndDate, startDate));

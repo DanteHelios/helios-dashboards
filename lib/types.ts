@@ -67,6 +67,7 @@ export type DashboardProject = {
   githubRepo: string;
   cronEnabled: boolean;
   cronStatus: string;
+  mvpDelivered: boolean;
   client: { id: string; name: string };
 };
 

@@ -81,6 +81,7 @@ export async function createProject(
   const startDateStr = formData.get("startDate") as string;
   const targetEndDateStr = formData.get("targetEndDate") as string;
   const status = (formData.get("status") as string) || "ACTIVE";
+  const mvpDelivered = formData.get("mvpDelivered") === "on";
 
   if (!name) return { fieldErrors: { name: "Project name is required." } };
   if (!startDateStr) return { fieldErrors: { startDate: "Start date is required." } };
@@ -114,6 +115,7 @@ export async function createProject(
       accessToken,
       githubRepo: repoSlug ?? "",
       githubBranch,
+      mvpDelivered,
     },
   });
 
@@ -136,6 +138,7 @@ export async function updateProject(
   const status = formData.get("status") as string;
   const completedAtStr = formData.get("completedAt") as string;
   const cronEnabled = formData.get("cronEnabled") === "on";
+  const mvpDelivered = formData.get("mvpDelivered") === "on";
 
   if (!name) return { fieldErrors: { name: "Project name is required." } };
 
@@ -169,6 +172,7 @@ export async function updateProject(
       githubRepo: repoSlug ?? "",
       githubBranch,
       cronEnabled,
+      mvpDelivered,
     },
   });
 
