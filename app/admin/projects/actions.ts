@@ -43,7 +43,7 @@ async function validateRepo(repoInput: string): Promise<{ repoSlug: string } | {
     if ((err as { status?: number }).status === 404) {
       return {
         error:
-          "Repo not found or not accessible. Check the URL and invite @helios-dashboards-bot as a Read collaborator.",
+          "Repo not found or not accessible. Check the URL and invite @lucasfigueroa0518 as a Read collaborator.",
       };
     }
     return { error: "Could not verify repo access. Check that GITHUB_TOKEN is valid." };

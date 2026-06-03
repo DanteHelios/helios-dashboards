@@ -67,7 +67,7 @@ export default function NewProjectForm({ clients }: { clients: Client[] }) {
           <p className="mt-1 text-xs text-red-500">{fe.githubRepo}</p>
         ) : (
           <p className="mt-1 text-xs text-fg-muted">
-            Invite @helios-dashboards-bot as a Read collaborator before saving.
+            Invite @lucasfigueroa0518 as a Read collaborator before saving.
           </p>
         )}
       </div>

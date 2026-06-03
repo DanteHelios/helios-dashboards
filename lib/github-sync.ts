@@ -17,6 +17,27 @@ function parseRepo(githubRepo: string): { owner: string; repo: string } | null {
   return null;
 }
 
+// GitHub account whose PAT is in GITHUB_TOKEN. Repos owned by other accounts
+// must add this account as a collaborator for sync to see them.
+const SYNC_ACCOUNT = "lucasfigueroa0518";
+
+function syncStamp(): string {
+  return new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC";
+}
+
+function syncErrorMessage(err: unknown): string {
+  const status = (err as { status?: number }).status;
+  const at = `(Sync attempted at ${syncStamp()})`;
+  if (status === 401) {
+    return `GitHub token is invalid or expired. Contact admin to rotate. ${at}`;
+  }
+  if (status === 403 || status === 404) {
+    return `Sync failed: @${SYNC_ACCOUNT} must be added as a collaborator on this repo. ${at}`;
+  }
+  const detail = err instanceof Error ? err.message : String(err);
+  return `Sync failed: ${detail} ${at}`;
+}
+
 export async function syncProject(
   projectId: string
 ): Promise<{ synced: number; skipped: number }> {
@@ -27,10 +48,25 @@ export async function syncProject(
   if (!project) throw new Error(`Project ${projectId} not found`);
 
   const parsed = parseRepo(project.githubRepo);
-  if (!parsed) throw new Error(`Invalid repo format: ${project.githubRepo}`);
+  if (!parsed) {
+    const msg = `Sync failed: "${project.githubRepo}" is not a valid owner/repo. (Sync attempted at ${syncStamp()})`;
+    await prisma.project.update({ where: { id: projectId }, data: { lastSyncError: msg } });
+    throw new Error(msg);
+  }
   const { owner, repo } = parsed;
 
   const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
+  // Up-front access check so permission failures (401/403/404) surface clearly
+  // instead of being swallowed by the per-resource try/catch blocks below.
+  try {
+    await octokit.rest.repos.get({ owner, repo });
+  } catch (err) {
+    const msg = syncErrorMessage(err);
+    await prisma.project.update({ where: { id: projectId }, data: { lastSyncError: msg } });
+    throw new Error(msg);
+  }
+
   const since =
     project.githubLastSyncAt ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -174,7 +210,7 @@ export async function syncProject(
 
   await prisma.project.update({
     where: { id: projectId },
-    data: { githubLastSyncAt: new Date() },
+    data: { githubLastSyncAt: new Date(), lastSyncError: null },
   });
 
   return { synced, skipped };
