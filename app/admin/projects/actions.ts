@@ -251,21 +251,25 @@ export async function triggerSync(
   }
 }
 
-export async function generateUpdateAction(
-  id: string
-): Promise<{ generated: boolean; hasPriorUpdate?: boolean; error?: string }> {
+export async function generateUpdateAction(id: string): Promise<{
+  generated: boolean;
+  source?: "ai" | "fallback";
+  aiError?: string;
+  hasPriorUpdate?: boolean;
+  error?: string;
+}> {
   try {
-    const update = await generateUpdate(id, { manual: true });
-    if (update) {
+    const outcome = await generateUpdate(id, { manual: true });
+    if (outcome.status === "generated") {
       revalidatePath(`/admin/projects/${id}`);
-      return { generated: true };
+      // source === "fallback" means the AI summary failed; aiError says why, so the
+      // admin can see it even though we still persisted a basic summary.
+      return { generated: true, source: outcome.source, aiError: outcome.aiError };
     }
-    // No update was created. Tell the button whether this is a first-ever empty
-    // result (no prior ContextUpdate) vs "nothing new since the last update" so it
-    // can show accurate copy. Count reflects pre-existing rows since none was created.
-    const priorCount = await prisma.contextUpdate.count({ where: { projectId: id } });
-    return { generated: false, hasPriorUpdate: priorCount > 0 };
+    // status === "no_events": nothing to summarize in the window. hasPriorUpdate
+    // drives whether the button shows first-ever vs since-last-update copy.
+    return { generated: false, hasPriorUpdate: outcome.hasPriorUpdate };
   } catch (e: unknown) {
-    return { generated: false, error: String(e) };
+    return { generated: false, error: e instanceof Error ? e.message : String(e) };
   }
 }

@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 vi.mock("@anthropic-ai/sdk", () => ({ default: vi.fn() }));
 
-import { sanitizeBullets } from "./ai";
+import { sanitizeBullets, buildFallbackBullets } from "./ai";
 import type { Bullet } from "./types";
 
 describe("sanitizeBullets", () => {
@@ -74,5 +74,35 @@ describe("sanitizeBullets", () => {
 
     expect(result).toHaveLength(2);
     expect(result.every((b) => b.sources.length === 0)).toBe(true);
+  });
+});
+
+describe("buildFallbackBullets", () => {
+  it("makes one labeled, self-cited bullet per event (capped at 6)", () => {
+    const events = [
+      { id: "e1", type: "COMMIT", title: "Add login form" },
+      { id: "e2", type: "PR_MERGED", title: "Wire up auth" },
+      { id: "e3", type: "ISSUE_CLOSED", title: "Fix redirect bug" },
+    ];
+
+    const result = buildFallbackBullets(events);
+
+    expect(result).toHaveLength(3);
+    expect(result[0]).toEqual({
+      text: "Commit: Add login form",
+      sources: [{ eventId: "e1" }],
+    });
+    expect(result[1].text).toBe("Merged PR: Wire up auth");
+    expect(result[2].text).toBe("Closed issue: Fix redirect bug");
+  });
+
+  it("caps at 6 bullets", () => {
+    const events = Array.from({ length: 10 }, (_, i) => ({
+      id: `e${i}`,
+      type: "COMMIT",
+      title: `Commit ${i}`,
+    }));
+
+    expect(buildFallbackBullets(events)).toHaveLength(6);
   });
 });

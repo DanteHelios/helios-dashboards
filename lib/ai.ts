@@ -157,10 +157,45 @@ export type GeneratedUpdate = {
   generatedBy: "CRON" | "MANUAL";
 };
 
+// Discriminated outcome so callers can surface WHY nothing AI-generated happened,
+// instead of a bare null that always renders the welcome placeholder.
+export type GenerateOutcome =
+  | {
+      status: "no_events";
+      hasPriorUpdate: boolean;
+      windowStart: Date;
+      windowEnd: Date;
+    }
+  | {
+      status: "generated";
+      update: GeneratedUpdate;
+      source: "ai" | "fallback";
+      // Populated when source === "fallback": the reason the AI summary was not used.
+      aiError?: string;
+    };
+
+const EVENT_LABEL: Record<string, string> = {
+  COMMIT: "Commit",
+  PR_MERGED: "Merged PR",
+  ISSUE_CLOSED: "Closed issue",
+  RELEASE: "Release",
+};
+
+// Non-AI fallback: one bullet per event, "<Type>: <title>", citing the event itself.
+// Guarantees a real, visible update whenever there are events to summarize.
+export function buildFallbackBullets(
+  events: { id: string; type: string; title: string }[]
+): Bullet[] {
+  return events.slice(0, 6).map((e) => ({
+    text: `${EVENT_LABEL[e.type] ?? e.type}: ${e.title}`,
+    sources: [{ eventId: e.id }],
+  }));
+}
+
 export async function generateUpdate(
   projectId: string,
   opts?: { manual?: boolean }
-): Promise<GeneratedUpdate | null> {
+): Promise<GenerateOutcome> {
   // 1. Determine window
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -180,6 +215,7 @@ export async function generateUpdate(
   // silently breaks first generation for projects added mid-stream, whose synced
   // activity can predate startDate. Subsequent generations continue from the last
   // update's windowEnd.
+  const hasPriorUpdate = Boolean(project.contextUpdates[0]);
   const windowStart: Date =
     project.contextUpdates[0]?.windowEnd ?? project.createdAt;
   const windowEnd = new Date();
@@ -189,7 +225,7 @@ export async function generateUpdate(
     projectId,
     windowStart: windowStart.toISOString(),
     windowEnd: windowEnd.toISOString(),
-    isFirstGeneration: !project.contextUpdates[0],
+    isFirstGeneration: !hasPriorUpdate,
   });
 
   // 2. Fetch and filter events in window
@@ -220,49 +256,67 @@ export async function generateUpdate(
     droppedAsJunk: rawEvents.length - events.length,
   });
 
-  // 3. Skip empty windows
+  // 3. Genuinely nothing to summarize — the only path that persists nothing.
   if (events.length === 0) {
-    // TEMP DEBUG
-    console.log("[generateUpdate] RETURN NULL — guard A: no events in window after junk filter");
-    return null;
+    console.log("[generateUpdate] no events in window", {
+      windowStart: windowStart.toISOString(),
+      windowEnd: windowEnd.toISOString(),
+    });
+    return { status: "no_events", hasPriorUpdate, windowStart, windowEnd };
   }
 
   const eventIds = new Set(events.map((e) => e.id));
 
-  // 4. Build prompt and call Claude
-  const prompt = buildPrompt(
-    { name: project.name, client: { name: project.client.name } },
-    project.readmeMarkdown,
-    events,
-    windowStart,
-    windowEnd
-  );
+  // 4. Try the AI summary. Any failure (throw, malformed JSON, empty bullets) is
+  // captured as aiError and we fall through to a deterministic non-AI summary —
+  // something visible always beats a silent welcome placeholder.
+  let bullets: Bullet[] = [];
+  let aiError: string | undefined;
+  try {
+    const prompt = buildPrompt(
+      { name: project.name, client: { name: project.client.name } },
+      project.readmeMarkdown,
+      events,
+      windowStart,
+      windowEnd
+    );
 
-  // TEMP DEBUG
-  console.log("[generateUpdate] before Anthropic call", {
-    promptLength: prompt.length,
-    eventCount: events.length,
-  });
-
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const parsed = await callClaudeWithRetry(anthropic, prompt);
-
-  // TEMP DEBUG
-  console.log("[generateUpdate] parsed Claude response", {
-    rawBullets: JSON.stringify(parsed.bullets ?? null),
-  });
-
-  // 5. Sanitize bullets: keep all real text, strip only unknown/hallucinated sources
-  const bullets = sanitizeBullets(parsed.bullets ?? [], eventIds).slice(0, 6);
-
-  // 6. Skip only if the model had genuinely nothing to report
-  if (bullets.length === 0) {
     // TEMP DEBUG
-    console.log("[generateUpdate] RETURN NULL — guard B: no bullets survived sanitize (model returned no usable text)");
-    return null;
+    console.log("[generateUpdate] before Anthropic call", {
+      promptLength: prompt.length,
+      eventCount: events.length,
+      hasApiKey: Boolean(process.env.ANTHROPIC_API_KEY),
+    });
+
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const parsed = await callClaudeWithRetry(anthropic, prompt);
+
+    // TEMP DEBUG
+    console.log("[generateUpdate] parsed Claude response", {
+      rawBullets: JSON.stringify(parsed.bullets ?? null),
+    });
+
+    bullets = sanitizeBullets(parsed.bullets ?? [], eventIds).slice(0, 6);
+    if (bullets.length === 0) {
+      aiError = "Claude returned no usable bullets";
+    }
+  } catch (e: unknown) {
+    aiError = e instanceof Error ? e.message : String(e);
+    console.error("[generateUpdate] Anthropic call failed:", aiError);
   }
 
-  // 7. Persist
+  // 5. Fall back to a non-AI summary if the AI produced nothing usable.
+  let source: "ai" | "fallback" = "ai";
+  if (bullets.length === 0) {
+    bullets = buildFallbackBullets(events);
+    source = "fallback";
+    console.log("[generateUpdate] using non-AI fallback summary", {
+      reason: aiError,
+      fallbackBullets: bullets.length,
+    });
+  }
+
+  // 6. Persist — guaranteed non-empty here (events.length > 0).
   const bulletsJson: ContextUpdateBullets = { bullets };
   const update = await prisma.contextUpdate.create({
     data: {
@@ -274,13 +328,20 @@ export async function generateUpdate(
     },
   });
 
+  console.log("[generateUpdate] persisted update", { id: update.id, source });
+
   return {
-    id: update.id,
-    projectId: update.projectId,
-    bullets: bulletsJson,
-    windowStart: update.windowStart,
-    windowEnd: update.windowEnd,
-    generatedAt: update.generatedAt,
-    generatedBy: update.generatedBy as "CRON" | "MANUAL",
+    status: "generated",
+    source,
+    aiError,
+    update: {
+      id: update.id,
+      projectId: update.projectId,
+      bullets: bulletsJson,
+      windowStart: update.windowStart,
+      windowEnd: update.windowEnd,
+      generatedAt: update.generatedAt,
+      generatedBy: update.generatedBy as "CRON" | "MANUAL",
+    },
   };
 }
