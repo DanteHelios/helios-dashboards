@@ -8,6 +8,7 @@ type State = "idle" | "loading" | "success" | "empty" | "error";
 export default function GenerateUpdateButton({ projectId }: { projectId: string }) {
   const [state, setState] = useState<State>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [hasPriorUpdate, setHasPriorUpdate] = useState(true);
 
   async function handleGenerate() {
     setState("loading");
@@ -17,6 +18,7 @@ export default function GenerateUpdateButton({ projectId }: { projectId: string 
       setErrorMsg(result.error);
       setState("error");
     } else {
+      setHasPriorUpdate(result.hasPriorUpdate ?? true);
       setState(result.generated ? "success" : "empty");
     }
     setTimeout(() => setState("idle"), 6000);
@@ -47,7 +49,9 @@ export default function GenerateUpdateButton({ projectId }: { projectId: string 
       )}
       {state === "empty" && (
         <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          No new activity to summarize since the last update.
+          {hasPriorUpdate
+            ? "No new activity to summarize since the last update."
+            : "No activity since this project was added to Helios Dashboards. The first update will generate once new commits land."}
         </div>
       )}
       {state === "error" && (

@@ -253,14 +253,18 @@ export async function triggerSync(
 
 export async function generateUpdateAction(
   id: string
-): Promise<{ generated: boolean; error?: string }> {
+): Promise<{ generated: boolean; hasPriorUpdate?: boolean; error?: string }> {
   try {
     const update = await generateUpdate(id, { manual: true });
     if (update) {
       revalidatePath(`/admin/projects/${id}`);
       return { generated: true };
     }
-    return { generated: false };
+    // No update was created. Tell the button whether this is a first-ever empty
+    // result (no prior ContextUpdate) vs "nothing new since the last update" so it
+    // can show accurate copy. Count reflects pre-existing rows since none was created.
+    const priorCount = await prisma.contextUpdate.count({ where: { projectId: id } });
+    return { generated: false, hasPriorUpdate: priorCount > 0 };
   } catch (e: unknown) {
     return { generated: false, error: String(e) };
   }

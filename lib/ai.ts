@@ -170,8 +170,13 @@ export async function generateUpdate(
   });
   if (!project) throw new Error(`Project ${projectId} not found`);
 
+  // First generation floors on createdAt (when the project was onboarded to Helios
+  // Dashboards), NOT startDate (the contract-start business field). Conflating them
+  // silently breaks first generation for projects added mid-stream, whose synced
+  // activity can predate startDate. Subsequent generations continue from the last
+  // update's windowEnd.
   const windowStart: Date =
-    project.contextUpdates[0]?.windowEnd ?? project.startDate;
+    project.contextUpdates[0]?.windowEnd ?? project.createdAt;
   const windowEnd = new Date();
 
   // 2. Fetch and filter events in window
