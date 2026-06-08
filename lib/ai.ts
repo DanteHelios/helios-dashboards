@@ -184,6 +184,14 @@ export async function generateUpdate(
     project.contextUpdates[0]?.windowEnd ?? project.createdAt;
   const windowEnd = new Date();
 
+  // TEMP DEBUG
+  console.log("[generateUpdate] window", {
+    projectId,
+    windowStart: windowStart.toISOString(),
+    windowEnd: windowEnd.toISOString(),
+    isFirstGeneration: !project.contextUpdates[0],
+  });
+
   // 2. Fetch and filter events in window
   const rawEvents = await prisma.repoEvent.findMany({
     where: {
@@ -195,12 +203,29 @@ export async function generateUpdate(
     take: 30,
   });
 
+  // TEMP DEBUG
+  console.log("[generateUpdate] rawEvents query", {
+    rawCount: rawEvents.length,
+    firstEventId: rawEvents[0]?.id ?? null,
+    firstEventOccurredAt: rawEvents[0]?.occurredAt.toISOString() ?? null,
+  });
+
   const events = rawEvents.filter(
     (e) => e.type !== "COMMIT" || !isJunk(e.title)
   );
 
+  // TEMP DEBUG
+  console.log("[generateUpdate] after junk filter", {
+    survived: events.length,
+    droppedAsJunk: rawEvents.length - events.length,
+  });
+
   // 3. Skip empty windows
-  if (events.length === 0) return null;
+  if (events.length === 0) {
+    // TEMP DEBUG
+    console.log("[generateUpdate] RETURN NULL — guard A: no events in window after junk filter");
+    return null;
+  }
 
   const eventIds = new Set(events.map((e) => e.id));
 
@@ -213,14 +238,29 @@ export async function generateUpdate(
     windowEnd
   );
 
+  // TEMP DEBUG
+  console.log("[generateUpdate] before Anthropic call", {
+    promptLength: prompt.length,
+    eventCount: events.length,
+  });
+
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const parsed = await callClaudeWithRetry(anthropic, prompt);
+
+  // TEMP DEBUG
+  console.log("[generateUpdate] parsed Claude response", {
+    rawBullets: JSON.stringify(parsed.bullets ?? null),
+  });
 
   // 5. Sanitize bullets: keep all real text, strip only unknown/hallucinated sources
   const bullets = sanitizeBullets(parsed.bullets ?? [], eventIds).slice(0, 6);
 
   // 6. Skip only if the model had genuinely nothing to report
-  if (bullets.length === 0) return null;
+  if (bullets.length === 0) {
+    // TEMP DEBUG
+    console.log("[generateUpdate] RETURN NULL — guard B: no bullets survived sanitize (model returned no usable text)");
+    return null;
+  }
 
   // 7. Persist
   const bulletsJson: ContextUpdateBullets = { bullets };
