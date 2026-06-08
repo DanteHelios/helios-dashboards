@@ -67,7 +67,7 @@ ${(readme ?? "").slice(0, 2000)}
 SCOPE:
 - Summarize project activity between ${windowStart.toISOString()} and ${windowEnd.toISOString()}.
 - 3–6 bullets. Each bullet = 1–2 sentences.
-- EVERY bullet must cite at least one source eventId from the inputs below.
+- Cite at least one source eventId from the inputs below for each bullet where you can.
 - If there is nothing meaningful to report, return {"bullets": []}.
 - Group related events into a single bullet — don't list every commit.
 
@@ -85,21 +85,26 @@ OUTPUT — strict JSON, no prose, no markdown fence:
   ]
 }
 
-A bullet without sources, or with an eventId not in the inputs, will be dropped.
+Cite source eventIds where you can; any eventId you cite must come from the inputs above — do not invent eventIds.
 Do not invent claims that aren't grounded in the inputs.
 Do not include the README in your sources — it's context only.`;
 }
 
-export function validateCitations(
+// Keep every bullet that has real text. Strip only the sources whose eventId
+// wasn't in the inputs (prevents linking to hallucinated/unknown events).
+// A soft, unlinked summary is better than discarding the whole update.
+export function sanitizeBullets(
   bullets: Bullet[],
   eventIds: Set<string>
 ): Bullet[] {
-  return bullets.filter(
-    (b) =>
-      Array.isArray(b.sources) &&
-      b.sources.length > 0 &&
-      b.sources.every((s) => eventIds.has(s.eventId))
-  );
+  return bullets
+    .filter((b) => typeof b.text === "string" && b.text.trim().length > 0)
+    .map((b) => ({
+      text: b.text,
+      sources: Array.isArray(b.sources)
+        ? b.sources.filter((s) => eventIds.has(s.eventId))
+        : [],
+    }));
 }
 
 async function callClaudeWithRetry(
@@ -211,14 +216,14 @@ export async function generateUpdate(
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const parsed = await callClaudeWithRetry(anthropic, prompt);
 
-  // 5. Validate citations + truncate
-  const validBullets = validateCitations(parsed.bullets ?? [], eventIds).slice(0, 6);
+  // 5. Sanitize bullets: keep all real text, strip only unknown/hallucinated sources
+  const bullets = sanitizeBullets(parsed.bullets ?? [], eventIds).slice(0, 6);
 
-  // 6. Skip if no valid bullets survive
-  if (validBullets.length === 0) return null;
+  // 6. Skip only if the model had genuinely nothing to report
+  if (bullets.length === 0) return null;
 
   // 7. Persist
-  const bulletsJson: ContextUpdateBullets = { bullets: validBullets };
+  const bulletsJson: ContextUpdateBullets = { bullets };
   const update = await prisma.contextUpdate.create({
     data: {
       projectId,
