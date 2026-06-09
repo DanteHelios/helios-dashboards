@@ -196,6 +196,9 @@ export async function generateUpdate(
   projectId: string,
   opts?: { manual?: boolean }
 ): Promise<GenerateOutcome> {
+  // TEMP DEBUG — confirm which Anthropic key is loaded in this environment.
+  console.log("[ai] using key prefix:", process.env.ANTHROPIC_API_KEY?.slice(0, 12));
+
   // 1. Determine window
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -210,26 +213,31 @@ export async function generateUpdate(
   });
   if (!project) throw new Error(`Project ${projectId} not found`);
 
-  // Window: the FIRST generation has no lower bound. Synced history routinely
-  // predates onboarding (createdAt) and contract start (startDate) — sync backfills
-  // ~30 days, so for a project added mid-stream the real activity sits BEFORE any
-  // onboarding date. Flooring on such a date silently hides every event (the bug
-  // we kept hitting). Subsequent generations only take events after the last window
-  // so we never re-summarize. windowStart on the persisted record is the last
-  // window end, else the earliest event we actually summarized, else createdAt.
+  // Window selection:
+  // - Manual "Generate now" ALWAYS summarizes a fresh last-14-days window (matching
+  //   what Recent Activity shows) and ignores the previous update's windowEnd. Clicking
+  //   twice produces two updates over the same activity — explicit user intent.
+  // - Cron's FIRST generation has no lower bound: synced history routinely predates
+  //   onboarding (createdAt) and contract start (startDate) — flooring on such a date
+  //   silently hides every event. Subsequent cron runs floor on the last window end so
+  //   we never auto-duplicate.
+  const manual = opts?.manual ?? false;
   const hasPriorUpdate = Boolean(project.contextUpdates[0]);
-  const priorWindowEnd: Date | null =
-    project.contextUpdates[0]?.windowEnd ?? null;
+  const priorWindowEnd: Date | null = manual
+    ? null
+    : project.contextUpdates[0]?.windowEnd ?? null;
   const windowEnd = new Date();
+  const fourteenDaysAgo = new Date(windowEnd.getTime() - 14 * 24 * 60 * 60 * 1000);
+  // Lower bound on event.occurredAt: 14 days for manual, last window for cron,
+  // unbounded for the first cron generation.
+  const lowerBound: Date | null = manual ? fourteenDaysAgo : priorWindowEnd;
 
   // 2. Fetch and filter events
   const rawEvents = await prisma.repoEvent.findMany({
     where: {
       projectId,
       type: { in: ["COMMIT", "PR_MERGED", "ISSUE_CLOSED"] },
-      occurredAt: priorWindowEnd
-        ? { gte: priorWindowEnd, lt: windowEnd }
-        : { lt: windowEnd },
+      occurredAt: lowerBound ? { gte: lowerBound, lt: windowEnd } : { lt: windowEnd },
     },
     orderBy: { occurredAt: "asc" },
     take: 30,
@@ -238,8 +246,9 @@ export async function generateUpdate(
   // TEMP DEBUG
   console.log("[generateUpdate] rawEvents query", {
     projectId,
+    manual,
     isFirstGeneration: !hasPriorUpdate,
-    priorWindowEnd: priorWindowEnd?.toISOString() ?? null,
+    lowerBound: lowerBound?.toISOString() ?? null,
     windowEnd: windowEnd.toISOString(),
     rawCount: rawEvents.length,
     firstEventId: rawEvents[0]?.id ?? null,
@@ -258,9 +267,10 @@ export async function generateUpdate(
 
   // 3. Genuinely nothing to summarize — the only path that persists nothing.
   if (events.length === 0) {
-    const emptyWindowStart = priorWindowEnd ?? project.createdAt;
+    const emptyWindowStart = lowerBound ?? project.createdAt;
     console.log("[generateUpdate] no events to summarize", {
-      priorWindowEnd: priorWindowEnd?.toISOString() ?? null,
+      manual,
+      lowerBound: lowerBound?.toISOString() ?? null,
       windowEnd: windowEnd.toISOString(),
     });
     return {
@@ -271,9 +281,12 @@ export async function generateUpdate(
     };
   }
 
-  // Effective window start now that we know the events we're summarizing.
-  const windowStart: Date =
-    priorWindowEnd ?? events[0].occurredAt ?? project.createdAt;
+  // Effective window start now that we know the events we're summarizing:
+  // manual → the 14-day window; cron subsequent → last window end; cron first →
+  // the earliest event actually summarized (else createdAt).
+  const windowStart: Date = manual
+    ? fourteenDaysAgo
+    : priorWindowEnd ?? events[0].occurredAt ?? project.createdAt;
 
   const eventIds = new Set(events.map((e) => e.id));
 
