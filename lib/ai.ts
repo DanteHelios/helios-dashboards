@@ -210,30 +210,26 @@ export async function generateUpdate(
   });
   if (!project) throw new Error(`Project ${projectId} not found`);
 
-  // First generation floors on createdAt (when the project was onboarded to Helios
-  // Dashboards), NOT startDate (the contract-start business field). Conflating them
-  // silently breaks first generation for projects added mid-stream, whose synced
-  // activity can predate startDate. Subsequent generations continue from the last
-  // update's windowEnd.
+  // Window: the FIRST generation has no lower bound. Synced history routinely
+  // predates onboarding (createdAt) and contract start (startDate) — sync backfills
+  // ~30 days, so for a project added mid-stream the real activity sits BEFORE any
+  // onboarding date. Flooring on such a date silently hides every event (the bug
+  // we kept hitting). Subsequent generations only take events after the last window
+  // so we never re-summarize. windowStart on the persisted record is the last
+  // window end, else the earliest event we actually summarized, else createdAt.
   const hasPriorUpdate = Boolean(project.contextUpdates[0]);
-  const windowStart: Date =
-    project.contextUpdates[0]?.windowEnd ?? project.createdAt;
+  const priorWindowEnd: Date | null =
+    project.contextUpdates[0]?.windowEnd ?? null;
   const windowEnd = new Date();
 
-  // TEMP DEBUG
-  console.log("[generateUpdate] window", {
-    projectId,
-    windowStart: windowStart.toISOString(),
-    windowEnd: windowEnd.toISOString(),
-    isFirstGeneration: !hasPriorUpdate,
-  });
-
-  // 2. Fetch and filter events in window
+  // 2. Fetch and filter events
   const rawEvents = await prisma.repoEvent.findMany({
     where: {
       projectId,
-      occurredAt: { gte: windowStart, lt: windowEnd },
       type: { in: ["COMMIT", "PR_MERGED", "ISSUE_CLOSED"] },
+      occurredAt: priorWindowEnd
+        ? { gte: priorWindowEnd, lt: windowEnd }
+        : { lt: windowEnd },
     },
     orderBy: { occurredAt: "asc" },
     take: 30,
@@ -241,6 +237,10 @@ export async function generateUpdate(
 
   // TEMP DEBUG
   console.log("[generateUpdate] rawEvents query", {
+    projectId,
+    isFirstGeneration: !hasPriorUpdate,
+    priorWindowEnd: priorWindowEnd?.toISOString() ?? null,
+    windowEnd: windowEnd.toISOString(),
     rawCount: rawEvents.length,
     firstEventId: rawEvents[0]?.id ?? null,
     firstEventOccurredAt: rawEvents[0]?.occurredAt.toISOString() ?? null,
@@ -258,12 +258,22 @@ export async function generateUpdate(
 
   // 3. Genuinely nothing to summarize — the only path that persists nothing.
   if (events.length === 0) {
-    console.log("[generateUpdate] no events in window", {
-      windowStart: windowStart.toISOString(),
+    const emptyWindowStart = priorWindowEnd ?? project.createdAt;
+    console.log("[generateUpdate] no events to summarize", {
+      priorWindowEnd: priorWindowEnd?.toISOString() ?? null,
       windowEnd: windowEnd.toISOString(),
     });
-    return { status: "no_events", hasPriorUpdate, windowStart, windowEnd };
+    return {
+      status: "no_events",
+      hasPriorUpdate,
+      windowStart: emptyWindowStart,
+      windowEnd,
+    };
   }
+
+  // Effective window start now that we know the events we're summarizing.
+  const windowStart: Date =
+    priorWindowEnd ?? events[0].occurredAt ?? project.createdAt;
 
   const eventIds = new Set(events.map((e) => e.id));
 
