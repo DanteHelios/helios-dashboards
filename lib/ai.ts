@@ -75,7 +75,8 @@ INPUTS (chronologically interleaved):
 
 ${eventBlock}
 
-OUTPUT — strict JSON, no prose, no markdown fence:
+OUTPUT — respond with raw JSON only. Do not wrap the response in markdown code
+fences (no \`\`\`json or \`\`\`) and do not add any text before or after the JSON:
 {
   "bullets": [
     {
@@ -107,6 +108,39 @@ export function sanitizeBullets(
     }));
 }
 
+// Claude sometimes wraps JSON in markdown code fences (```json ... ```) or adds
+// a sentence before/after, despite the prompt asking for raw JSON. Strip fences
+// and, failing that, parse the substring from the first "{" to the last "}".
+export function parseClaudeJson(text: string): { bullets: Bullet[] } {
+  const trimmed = text.trim();
+
+  // 1. Try the raw text as-is (the happy path).
+  try {
+    return JSON.parse(trimmed) as { bullets: Bullet[] };
+  } catch {
+    // fall through
+  }
+
+  // 2. Strip a leading/trailing markdown code fence (```json ... ``` or ``` ... ```).
+  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenceMatch) {
+    try {
+      return JSON.parse(fenceMatch[1].trim()) as { bullets: Bullet[] };
+    } catch {
+      // fall through
+    }
+  }
+
+  // 3. Last resort: grab everything between the first "{" and last "}".
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    return JSON.parse(trimmed.slice(start, end + 1)) as { bullets: Bullet[] };
+  }
+
+  throw new Error("No JSON object found in Claude response");
+}
+
 async function callClaudeWithRetry(
   client: Anthropic,
   prompt: string
@@ -124,7 +158,7 @@ async function callClaudeWithRetry(
   const firstText = firstBlock.text;
 
   try {
-    return JSON.parse(firstText) as { bullets: Bullet[] };
+    return parseClaudeJson(firstText);
   } catch {
     // Retry with the bad response in context so Claude can self-correct
     const retry = await client.messages.create({
@@ -143,7 +177,7 @@ async function callClaudeWithRetry(
 
     const retryBlock = retry.content[0];
     if (retryBlock.type !== "text") throw new Error("Non-text response from Claude on retry");
-    return JSON.parse(retryBlock.text) as { bullets: Bullet[] };
+    return parseClaudeJson(retryBlock.text);
   }
 }
 
@@ -196,9 +230,6 @@ export async function generateUpdate(
   projectId: string,
   opts?: { manual?: boolean }
 ): Promise<GenerateOutcome> {
-  // TEMP DEBUG — confirm which Anthropic key is loaded in this environment.
-  console.log("[ai] using key prefix:", process.env.ANTHROPIC_API_KEY?.slice(0, 12));
-
   // 1. Determine window
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -243,27 +274,9 @@ export async function generateUpdate(
     take: 30,
   });
 
-  // TEMP DEBUG
-  console.log("[generateUpdate] rawEvents query", {
-    projectId,
-    manual,
-    isFirstGeneration: !hasPriorUpdate,
-    lowerBound: lowerBound?.toISOString() ?? null,
-    windowEnd: windowEnd.toISOString(),
-    rawCount: rawEvents.length,
-    firstEventId: rawEvents[0]?.id ?? null,
-    firstEventOccurredAt: rawEvents[0]?.occurredAt.toISOString() ?? null,
-  });
-
   const events = rawEvents.filter(
     (e) => e.type !== "COMMIT" || !isJunk(e.title)
   );
-
-  // TEMP DEBUG
-  console.log("[generateUpdate] after junk filter", {
-    survived: events.length,
-    droppedAsJunk: rawEvents.length - events.length,
-  });
 
   // 3. Genuinely nothing to summarize — the only path that persists nothing.
   if (events.length === 0) {
@@ -304,20 +317,8 @@ export async function generateUpdate(
       windowEnd
     );
 
-    // TEMP DEBUG
-    console.log("[generateUpdate] before Anthropic call", {
-      promptLength: prompt.length,
-      eventCount: events.length,
-      hasApiKey: Boolean(process.env.ANTHROPIC_API_KEY),
-    });
-
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const parsed = await callClaudeWithRetry(anthropic, prompt);
-
-    // TEMP DEBUG
-    console.log("[generateUpdate] parsed Claude response", {
-      rawBullets: JSON.stringify(parsed.bullets ?? null),
-    });
 
     bullets = sanitizeBullets(parsed.bullets ?? [], eventIds).slice(0, 6);
     if (bullets.length === 0) {
