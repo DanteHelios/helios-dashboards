@@ -3,6 +3,7 @@ import { getAdminProject, getAllClients } from "@/lib/admin-data";
 import EditProjectForm from "./EditProjectForm";
 import SyncButton from "./SyncButton";
 import GenerateUpdateButton from "./GenerateUpdateButton";
+import DeleteProjectButton from "./DeleteProjectButton";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export default async function EditProjectPage({
         )}
         <SyncButton projectId={project.id} lastSyncAt={project.githubLastSyncAt} />
         <EditProjectForm project={project} clients={clients} />
+        <DeleteProjectButton projectId={project.id} projectName={project.name} />
       </div>
     </div>
   );

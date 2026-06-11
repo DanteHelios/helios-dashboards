@@ -39,11 +39,8 @@ export default function Home() {
           </p>
 
           <div className="flex flex-wrap items-center gap-4">
-            <Link href="/d/demo-token-replace-me-in-prod">
-              <Button variant="primary">View Dashboard</Button>
-            </Link>
             <Link href="/admin">
-              <Button variant="outline">Admin Login</Button>
+              <Button variant="primary">Admin Login</Button>
             </Link>
           </div>
         </div>

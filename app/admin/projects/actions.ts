@@ -3,11 +3,22 @@
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { currentUser } from "@clerk/nextjs/server";
 import { Octokit } from "@octokit/rest";
 import { put, del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { syncProject } from "@/lib/github-sync";
 import { generateUpdate } from "@/lib/ai";
+
+// Admin gate matching app/admin/layout.tsx. Middleware already protects /admin
+// routes, but deletion is destructive and client-facing, so we re-check here.
+async function assertAdmin(): Promise<void> {
+  const user = await currentUser();
+  const email = user?.emailAddresses[0]?.emailAddress ?? "";
+  if (!email.endsWith("@heliosmarketing.org")) {
+    throw new Error("Not authorized");
+  }
+}
 
 export type ActionState = {
   error?: string;
@@ -249,6 +260,42 @@ export async function triggerSync(
   } catch (e: unknown) {
     return { synced: 0, skipped: 0, error: String(e) };
   }
+}
+
+// Permanently delete a project and everything attached to it. RepoEvent and
+// ContextUpdate cascade at the DB level (onDelete: Cascade in schema.prisma), so
+// a single project.delete cleans up synced events + updates atomically. The
+// access token is a column on the row and goes with it. The only thing not
+// cascaded is the external deck blob, which we remove explicitly first.
+export async function deleteProject(
+  id: string
+): Promise<{ error: string } | void> {
+  try {
+    await assertAdmin();
+
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: { deckPdfUrl: true },
+    });
+    if (!project) return { error: "Project not found." };
+
+    if (project.deckPdfUrl) {
+      try {
+        await del(project.deckPdfUrl);
+      } catch {
+        // Non-fatal — a leftover blob shouldn't block deleting the project.
+      }
+    }
+
+    // Cascades RepoEvent + ContextUpdate; access token gone with the row.
+    await prisma.project.delete({ where: { id } });
+  } catch (e: unknown) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  // Outside the try so redirect's control-flow signal isn't swallowed as an error.
+  revalidatePath("/admin");
+  redirect("/admin");
 }
 
 export async function generateUpdateAction(id: string): Promise<{
