@@ -108,9 +108,9 @@ export async function syncProject(
 
   const parsed = parseRepo(project.githubRepo);
   if (!parsed) {
-    throw new Error(
-      `Sync failed: "${project.githubRepo}" is not a valid owner/repo. (Sync attempted at ${syncStamp()})`
-    );
+    const msg = `Sync failed: "${project.githubRepo}" is not a valid owner/repo. (Sync attempted at ${syncStamp()})`;
+    await prisma.project.update({ where: { id: projectId }, data: { lastSyncError: msg } });
+    throw new Error(msg);
   }
   const { owner, repo } = parsed;
 
@@ -118,9 +118,9 @@ export async function syncProject(
   // silently succeeds on public repos (and rate-limits at 60/hr). Surface it.
   const token = process.env.GITHUB_TOKEN;
   if (!token || token.trim() === "") {
-    throw new Error(
-      `Sync failed: GITHUB_TOKEN is not configured. Contact admin. (Sync attempted at ${syncStamp()})`
-    );
+    const msg = `Sync failed: GITHUB_TOKEN is not configured. Contact admin. (Sync attempted at ${syncStamp()})`;
+    await prisma.project.update({ where: { id: projectId }, data: { lastSyncError: msg } });
+    throw new Error(msg);
   }
 
   const octokit = new Octokit({ auth: token });
@@ -130,14 +130,16 @@ export async function syncProject(
   try {
     await octokit.rest.repos.get({ owner, repo });
   } catch (err) {
-    throw new Error(syncErrorMessage(err));
+    const msg = syncErrorMessage(err);
+    await prisma.project.update({ where: { id: projectId }, data: { lastSyncError: msg } });
+    throw new Error(msg);
   }
 
   let synced = 0;
   let skipped = 0;
   // Collect failures instead of swallowing them. Rows already upserted before a
-  // failure are kept, but the run is NOT marked clean (the failure is thrown so
-  // it surfaces in the cron route response and server logs).
+  // failure are kept, but the run is NOT marked clean (lastSyncError is set and
+  // githubLastSyncAt is left untouched).
   const errors: string[] = [];
 
   // Commits — SHA-convergence pagination (newest -> oldest).
@@ -324,15 +326,16 @@ export async function syncProject(
   }
 
   // Partial failure: keep whatever was upserted, but do NOT mark the run clean.
-  // Thrown so it surfaces in the cron route response and server logs.
   if (errors.length > 0) {
-    throw new Error(errors[0]);
+    const msg = errors[0];
+    await prisma.project.update({ where: { id: projectId }, data: { lastSyncError: msg } });
+    throw new Error(msg);
   }
 
   // githubLastSyncAt is display-only ("last clean sync"), never used as a filter.
   await prisma.project.update({
     where: { id: projectId },
-    data: { githubLastSyncAt: new Date() },
+    data: { githubLastSyncAt: new Date(), lastSyncError: null },
   });
 
   return { synced, skipped };

@@ -3,23 +3,36 @@
 import { useState } from "react";
 import { generateUpdateAction } from "@/app/admin/projects/actions";
 
-type State = "idle" | "loading" | "success" | "empty" | "error";
+type State = "idle" | "loading" | "success" | "fallback" | "empty" | "error";
 
 export default function GenerateUpdateButton({ projectId }: { projectId: string }) {
   const [state, setState] = useState<State>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [hasPriorUpdate, setHasPriorUpdate] = useState(true);
 
   async function handleGenerate() {
     setState("loading");
     setErrorMsg(null);
+    setAiError(null);
     const result = await generateUpdateAction(projectId);
     if (result.error) {
       setErrorMsg(result.error);
       setState("error");
+    } else if (result.generated) {
+      // Persisted either an AI summary or, if the AI failed/returned nothing, a
+      // basic non-AI summary. Surface the AI failure reason in the fallback case.
+      if (result.source === "fallback") {
+        setAiError(result.aiError ?? "AI summary unavailable");
+        setState("fallback");
+      } else {
+        setState("success");
+      }
     } else {
-      setState(result.generated ? "success" : "empty");
+      setHasPriorUpdate(result.hasPriorUpdate ?? true);
+      setState("empty");
     }
-    setTimeout(() => setState("idle"), 6000);
+    setTimeout(() => setState("idle"), 10000);
   }
 
   return (
@@ -45,9 +58,17 @@ export default function GenerateUpdateButton({ projectId }: { projectId: string 
           Update generated. Clients will see it on the next dashboard visit.
         </div>
       )}
+      {state === "fallback" && (
+        <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          Generated a basic summary from GitHub activity — the AI summary was
+          unavailable: {aiError}. Clients will still see the update.
+        </div>
+      )}
       {state === "empty" && (
         <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          No new activity to summarize since the last update.
+          {hasPriorUpdate
+            ? "No new activity to summarize since the last update."
+            : "No activity since this project was added to Helios Dashboards. The first update will generate once new commits land."}
         </div>
       )}
       {state === "error" && (

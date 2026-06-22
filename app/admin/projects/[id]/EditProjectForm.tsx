@@ -21,6 +21,7 @@ type Project = {
   githubBranch: string;
   deckPdfUrl: string | null;
   cronEnabled: boolean;
+  mvpDelivered: boolean;
   client: Client;
 };
 
@@ -257,7 +258,7 @@ export default function EditProjectForm({
             <p className="text-sm font-medium text-fg-1">AI update cron</p>
             <p className="mt-0.5 text-xs text-fg-3">Generate updates automatically on schedule</p>
           </div>
-          <div className="relative inline-block h-5 w-9 shrink-0">
+          <label className="relative inline-block h-5 w-9 shrink-0 cursor-pointer">
             <input
               type="checkbox"
               name="cronEnabled"
@@ -266,7 +267,28 @@ export default function EditProjectForm({
             />
             <span className="block h-full w-full cursor-pointer rounded-full bg-neutral-200 transition-colors peer-checked:bg-[#FF5E1A]" />
             <span className="pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-4" />
+          </label>
+        </div>
+
+        {/* MVP Delivered toggle */}
+        <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-fg-1">MVP Delivered</p>
+            <p className="mt-0.5 text-xs text-fg-3">
+              When on, replaces the countdown with “MVP Delivered” + “Continuous
+              improvements ongoing”.
+            </p>
           </div>
+          <label className="relative inline-block h-5 w-9 shrink-0 cursor-pointer">
+            <input
+              type="checkbox"
+              name="mvpDelivered"
+              defaultChecked={project.mvpDelivered}
+              className="peer sr-only"
+            />
+            <span className="block h-full w-full cursor-pointer rounded-full bg-neutral-200 transition-colors peer-checked:bg-[#FF5E1A]" />
+            <span className="pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-4" />
+          </label>
         </div>
 
         {/* Completed at — only shown when status is COMPLETE */}

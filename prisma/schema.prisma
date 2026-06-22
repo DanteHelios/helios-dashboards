@@ -37,6 +37,7 @@ model Project {
   githubRepo        String
   githubBranch      String        @default("main")
   githubLastSyncAt  DateTime?
+  lastSyncError     String?       // user-facing error message from most recent sync attempt
   readmeMarkdown    String?       @db.Text
   readmeFetchedAt   DateTime?
 
@@ -44,6 +45,8 @@ model Project {
 
   cronEnabled       Boolean       @default(true)
   cronStatus        String        @default("IDLE")
+
+  mvpDelivered      Boolean       @default(false)
 
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt

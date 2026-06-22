@@ -3,11 +3,22 @@
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { currentUser } from "@clerk/nextjs/server";
 import { Octokit } from "@octokit/rest";
 import { put, del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { syncProject } from "@/lib/github-sync";
 import { generateUpdate } from "@/lib/ai";
+
+// Admin gate matching app/admin/layout.tsx. Middleware already protects /admin
+// routes, but deletion is destructive and client-facing, so we re-check here.
+async function assertAdmin(): Promise<void> {
+  const user = await currentUser();
+  const email = user?.emailAddresses[0]?.emailAddress ?? "";
+  if (!email.endsWith("@heliosmarketing.org")) {
+    throw new Error("Not authorized");
+  }
+}
 
 export type ActionState = {
   error?: string;
@@ -43,7 +54,7 @@ async function validateRepo(repoInput: string): Promise<{ repoSlug: string } | {
     if ((err as { status?: number }).status === 404) {
       return {
         error:
-          "Repo not found or not accessible. Check the URL and invite @helios-dashboards-bot as a Read collaborator.",
+          "Repo not found or not accessible. Check the URL and invite @lucasfigueroa0518 as a Read collaborator.",
       };
     }
     return { error: "Could not verify repo access. Check that GITHUB_TOKEN is valid." };
@@ -81,6 +92,7 @@ export async function createProject(
   const startDateStr = formData.get("startDate") as string;
   const targetEndDateStr = formData.get("targetEndDate") as string;
   const status = (formData.get("status") as string) || "ACTIVE";
+  const mvpDelivered = formData.get("mvpDelivered") === "on";
 
   if (!name) return { fieldErrors: { name: "Project name is required." } };
   if (!startDateStr) return { fieldErrors: { startDate: "Start date is required." } };
@@ -114,6 +126,7 @@ export async function createProject(
       accessToken,
       githubRepo: repoSlug ?? "",
       githubBranch,
+      mvpDelivered,
     },
   });
 
@@ -136,6 +149,7 @@ export async function updateProject(
   const status = formData.get("status") as string;
   const completedAtStr = formData.get("completedAt") as string;
   const cronEnabled = formData.get("cronEnabled") === "on";
+  const mvpDelivered = formData.get("mvpDelivered") === "on";
 
   if (!name) return { fieldErrors: { name: "Project name is required." } };
 
@@ -169,6 +183,7 @@ export async function updateProject(
       githubRepo: repoSlug ?? "",
       githubBranch,
       cronEnabled,
+      mvpDelivered,
     },
   });
 
@@ -247,17 +262,61 @@ export async function triggerSync(
   }
 }
 
-export async function generateUpdateAction(
+// Permanently delete a project and everything attached to it. RepoEvent and
+// ContextUpdate cascade at the DB level (onDelete: Cascade in schema.prisma), so
+// a single project.delete cleans up synced events + updates atomically. The
+// access token is a column on the row and goes with it. The only thing not
+// cascaded is the external deck blob, which we remove explicitly first.
+export async function deleteProject(
   id: string
-): Promise<{ generated: boolean; error?: string }> {
+): Promise<{ error: string } | void> {
   try {
-    const update = await generateUpdate(id, { manual: true });
-    if (update) {
-      revalidatePath(`/admin/projects/${id}`);
-      return { generated: true };
+    await assertAdmin();
+
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: { deckPdfUrl: true },
+    });
+    if (!project) return { error: "Project not found." };
+
+    if (project.deckPdfUrl) {
+      try {
+        await del(project.deckPdfUrl);
+      } catch {
+        // Non-fatal — a leftover blob shouldn't block deleting the project.
+      }
     }
-    return { generated: false };
+
+    // Cascades RepoEvent + ContextUpdate; access token gone with the row.
+    await prisma.project.delete({ where: { id } });
   } catch (e: unknown) {
-    return { generated: false, error: String(e) };
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  // Outside the try so redirect's control-flow signal isn't swallowed as an error.
+  revalidatePath("/admin");
+  redirect("/admin");
+}
+
+export async function generateUpdateAction(id: string): Promise<{
+  generated: boolean;
+  source?: "ai" | "fallback";
+  aiError?: string;
+  hasPriorUpdate?: boolean;
+  error?: string;
+}> {
+  try {
+    const outcome = await generateUpdate(id, { manual: true });
+    if (outcome.status === "generated") {
+      revalidatePath(`/admin/projects/${id}`);
+      // source === "fallback" means the AI summary failed; aiError says why, so the
+      // admin can see it even though we still persisted a basic summary.
+      return { generated: true, source: outcome.source, aiError: outcome.aiError };
+    }
+    // status === "no_events": nothing to summarize in the window. hasPriorUpdate
+    // drives whether the button shows first-ever vs since-last-update copy.
+    return { generated: false, hasPriorUpdate: outcome.hasPriorUpdate };
+  } catch (e: unknown) {
+    return { generated: false, error: e instanceof Error ? e.message : String(e) };
   }
 }

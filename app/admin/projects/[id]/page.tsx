@@ -3,6 +3,7 @@ import { getAdminProject, getAllClients } from "@/lib/admin-data";
 import EditProjectForm from "./EditProjectForm";
 import SyncButton from "./SyncButton";
 import GenerateUpdateButton from "./GenerateUpdateButton";
+import DeleteProjectButton from "./DeleteProjectButton";
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +30,15 @@ export default async function EditProjectPage({
       </div>
       <div className="space-y-6">
         <GenerateUpdateButton projectId={project.id} />
+        {project.lastSyncError && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span className="font-semibold">⚠ Last sync failed.</span>{" "}
+            {project.lastSyncError}
+          </div>
+        )}
         <SyncButton projectId={project.id} lastSyncAt={project.githubLastSyncAt} />
         <EditProjectForm project={project} clients={clients} />
+        <DeleteProjectButton projectId={project.id} projectName={project.name} />
       </div>
     </div>
   );

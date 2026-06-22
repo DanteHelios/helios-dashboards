@@ -27,12 +27,19 @@ export async function GET(req: NextRequest) {
       data: { cronStatus: "RUNNING" },
     });
     try {
-      const update = await generateUpdate(p.id);
+      const outcome = await generateUpdate(p.id);
+      const generated = outcome.status === "generated";
       console.log("[cron] generate-updates heartbeat", {
         projectId: p.id,
-        generated: !!update,
+        generated,
+        source: outcome.status === "generated" ? outcome.source : null,
       });
-      results.push({ id: p.id, name: p.name, generated: !!update });
+      results.push({
+        id: p.id,
+        name: p.name,
+        generated,
+        source: outcome.status === "generated" ? outcome.source : undefined,
+      });
     } catch (e: unknown) {
       captureException(e, { projectId: p.id });
       results.push({ id: p.id, name: p.name, generated: false, error: String(e) });
