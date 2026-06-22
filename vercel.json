@@ -4,12 +4,8 @@
   "outputDirectory": ".next",
   "crons": [
     {
-      "path": "/api/cron/sync-github",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/generate-updates",
-      "schedule": "0 0 */2 * *"
+      "path": "/api/cron/daily-update",
+      "schedule": "0 6 */2 * *"
     }
   ]
 }
