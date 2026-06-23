@@ -45,24 +45,6 @@ export default function DashboardLoading() {
         </div>
       </section>
 
-      {/* History section */}
-      <section className="py-16">
-        <div className="mx-auto max-w-[1280px] animate-pulse px-6">
-          <div className="mb-3 h-5 w-28 rounded bg-neutral-200" />
-          <div className="mb-8 h-8 w-40 rounded bg-neutral-300" />
-          <div className="divide-y divide-border-soft">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex items-center justify-between py-5">
-                <div className="space-y-1.5">
-                  <div className="h-4 w-36 rounded bg-neutral-200" />
-                  <div className="h-3 w-28 rounded bg-neutral-100" />
-                </div>
-                <div className="h-4 w-4 rounded bg-neutral-200" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

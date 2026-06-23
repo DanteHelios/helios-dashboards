@@ -340,23 +340,3 @@ export async function syncProject(
 
   return { synced, skipped };
 }
-
-export async function syncAllActiveProjects(): Promise<
-  Array<{ id: string; name: string; synced: number; skipped: number; error?: string }>
-> {
-  const projects = await prisma.project.findMany({
-    where: { status: "ACTIVE" },
-    select: { id: true, name: true },
-  });
-
-  const results = [];
-  for (const p of projects) {
-    try {
-      const counts = await syncProject(p.id);
-      results.push({ id: p.id, name: p.name, ...counts });
-    } catch (e: unknown) {
-      results.push({ id: p.id, name: p.name, synced: 0, skipped: 0, error: String(e) });
-    }
-  }
-  return results;
-}

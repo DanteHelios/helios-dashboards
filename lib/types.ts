@@ -74,7 +74,6 @@ export type DashboardProject = {
 export type DashboardPageData = {
   project: DashboardProject;
   latestUpdate: ContextUpdate | null;
-  historyUpdates: ContextUpdate[];
   recentEvents: RepoEvent[];
   eventsById: Record<string, RepoEvent>;
 };
