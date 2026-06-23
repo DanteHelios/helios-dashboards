@@ -48,15 +48,11 @@ export async function getDashboardData(
   if (!project) return null;
 
   const now = new Date();
-  const sixtyDaysAgo = subDays(now, 60);
   const fourteenDaysAgo = subDays(now, 14);
 
-  const [allUpdates, recentEventsRaw] = await Promise.all([
-    prisma.contextUpdate.findMany({
-      where: {
-        projectId: project.id,
-        generatedAt: { gte: sixtyDaysAgo },
-      },
+  const [latestUpdate, recentEventsRaw] = await Promise.all([
+    prisma.contextUpdate.findFirst({
+      where: { projectId: project.id },
       orderBy: { generatedAt: "desc" },
     }),
     prisma.repoEvent.findMany({
@@ -70,16 +66,14 @@ export async function getDashboardData(
     }),
   ]);
 
-  const [latestUpdate, ...historyUpdates] = allUpdates;
-
   const recentEvents = recentEventsRaw
     .filter((e) => e.type !== "COMMIT" || !isJunk(e.title))
     .map(toRepoEvent);
 
-  // Collect all event IDs cited across all updates so source chips resolve correctly
+  // Collect event IDs cited by the latest update so its source chips resolve.
   const citedIds = new Set<string>();
-  for (const update of allUpdates) {
-    const b = update.bullets as ContextUpdateBullets;
+  if (latestUpdate) {
+    const b = latestUpdate.bullets as ContextUpdateBullets;
     for (const bullet of b.bullets) {
       for (const s of bullet.sources) citedIds.add(s.eventId);
     }
@@ -126,15 +120,6 @@ export async function getDashboardData(
           generatedBy: latestUpdate.generatedBy as "CRON" | "MANUAL",
         }
       : null,
-    historyUpdates: historyUpdates.map((u) => ({
-      id: u.id,
-      projectId: u.projectId,
-      bullets: u.bullets as ContextUpdateBullets,
-      windowStart: u.windowStart,
-      windowEnd: u.windowEnd,
-      generatedAt: u.generatedAt,
-      generatedBy: u.generatedBy as "CRON" | "MANUAL",
-    })),
     recentEvents,
     eventsById,
   };

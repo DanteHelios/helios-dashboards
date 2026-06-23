@@ -8,7 +8,6 @@ import { getDashboardData } from "@/lib/data";
 import type { RepoEvent } from "@/lib/types";
 import Eyebrow from "@/components/Eyebrow";
 import SourceChip from "@/components/SourceChip";
-import HistoryAccordion from "./HistoryAccordion";
 import DaysProgressBar from "@/components/dashboard/DaysProgressBar";
 import GitHubEmptyState from "@/components/dashboard/GitHubEmptyState";
 
@@ -33,7 +32,7 @@ export default async function DashboardPage({
   const data = await getDashboardData(token);
   if (!data) notFound();
 
-  const { project, latestUpdate, historyUpdates, recentEvents, eventsById } = data;
+  const { project, latestUpdate, recentEvents, eventsById } = data;
 
   if (project.status === "ARCHIVED") {
     return (
@@ -208,21 +207,6 @@ export default async function DashboardPage({
               About this project — coming soon. Reach out to your project lead in the meantime.
             </p>
           )}
-        </div>
-      </section>
-
-      {/* Update history */}
-      <section className="py-16">
-        <div className="mx-auto max-w-[1280px] px-6">
-          <div className="animate-fade-in-up mb-8" style={{ animationDelay: "0.15s" }}>
-            <Eyebrow color="ink" className="mb-3">Update History</Eyebrow>
-            <h2 className="font-heading text-[clamp(24px,2.4vw,36px)] font-bold tracking-tight text-fg-1">
-              Last 60 Days
-            </h2>
-          </div>
-          <div className="animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
-            <HistoryAccordion updates={historyUpdates} />
-          </div>
         </div>
       </section>
 
