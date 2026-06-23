@@ -23,9 +23,8 @@ const mockFindMany = vi.mocked(prisma.project.findMany);
 const mockSync = vi.mocked(syncProject);
 const mockGen = vi.mocked(generateUpdate);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const project = (id: string, cronEnabled: boolean) =>
-  ({ id, name: id.toUpperCase(), cronEnabled }) as any;
+  ({ id, name: id.toUpperCase(), cronEnabled }) as never;
 
 beforeEach(() => {
   vi.clearAllMocks();
