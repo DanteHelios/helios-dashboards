@@ -118,6 +118,11 @@ export async function syncProject(
   // silently succeeds on public repos (and rate-limits at 60/hr). Surface it.
   const token = process.env.GITHUB_TOKEN;
   if (!token || token.trim() === "") {
+    // Token-guard fast-fail. Log only its presence/length — never the value.
+    console.error(
+      `[sync] GITHUB_TOKEN guard: token is MISSING/empty (present=${token != null}) ` +
+        `for ${owner}/${repo} — failing fast`
+    );
     const msg = `Sync failed: GITHUB_TOKEN is not configured. Contact admin. (Sync attempted at ${syncStamp()})`;
     await prisma.project.update({ where: { id: projectId }, data: { lastSyncError: msg } });
     throw new Error(msg);
@@ -130,6 +135,14 @@ export async function syncProject(
   try {
     await octokit.rest.repos.get({ owner, repo });
   } catch (err) {
+    const status = (err as { status?: number }).status;
+    // Log the HTTP status (not the token) so an expired/invalid PAT (401) is
+    // unambiguous in the logs vs a collaborator/permission problem (403/404).
+    console.error(
+      `[sync] access check FAILED for ${owner}/${repo}: status=${status ?? "unknown"} ` +
+        `(tokenLen=${token.length})` +
+        (status === 401 ? " — PAT invalid or expired, rotate GITHUB_TOKEN" : "")
+    );
     const msg = syncErrorMessage(err);
     await prisma.project.update({ where: { id: projectId }, data: { lastSyncError: msg } });
     throw new Error(msg);
