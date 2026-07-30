@@ -1,7 +1,7 @@
 # helios-dashboards
 
 Internal tool: per-client AI-updated project dashboards for Helios Marketing.
-See `PLAN.md` for the full engineering plan.
+See `docs/PLAN.md` for the full engineering plan.
 
 ## Setup
 
