@@ -1,6 +1,28 @@
 # helios-dashboards
 
-Internal tool: per-client AI-updated project dashboards for Helios Marketing.
+Internal tool built for Helios Marketing: a per-client project dashboard that keeps clients updated on their project's progress without requiring manual status updates from the team.
+
+## What it's for
+
+Helios manages ongoing projects for multiple clients. Instead of manually writing and sending status updates, each client gets a private, tokenized dashboard link (`/d/[token]`) showing their project's current status — automatically kept up to date.
+
+## What it does
+
+- **Client dashboards** — each client has a unique dashboard URL, showing live project status without needing a login.
+- **Automated updates** — scheduled jobs pull in the latest project activity and use AI to generate a plain-language summary of progress, so clients get a readable update without anyone on the team writing it by hand.
+- **Admin panel** — an internal `/admin` view (restricted to `@heliosmarketing.org` accounts via Clerk) for managing clients and dashboards.
+- **File/asset handling** — supports uploading and serving project-related files (e.g. deck PDFs) to clients via Vercel Blob.
+
+## How it's built
+
+- **Framework:** Next.js 15 (TypeScript), Tailwind CSS
+- **Database:** Postgres via Prisma ORM
+- **Auth:** Clerk (admin-only, restricted by email domain)
+- **File storage:** Vercel Blob
+- **AI:** Anthropic API, used to turn raw project activity into client-readable summaries
+- **Scheduling:** Vercel cron jobs (see `vercel.json`) trigger the sync and AI-generation routes on a schedule
+- **Deployment:** Vercel, auto-deployed from `main`
+
 See `docs/PLAN.md` for the full engineering plan.
 
 ## Setup
@@ -11,7 +33,8 @@ See `docs/PLAN.md` for the full engineering plan.
 4. `npx prisma db seed`
 5. `npm run dev`
 
-Routes:
+## Routes
+
 - `/d/[token]` — client dashboard (use the seeded token to test)
 - `/admin` — admin (Clerk login required, `@heliosmarketing.org` only)
 
